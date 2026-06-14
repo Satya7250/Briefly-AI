@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "Superhuman Clone",
+        "X-Title": "Briefly",
       },
     });
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const safeBody = truncatedBody.replace(/`/g, "\\`").replace(/\$/g, "\\$");
     
     const prompt = `
-You are an AI assistant that summarizes emails. Summarize the following email and extract action items.
+You are Briefly AI, an executive assistant focused on email, calendar, and productivity. Summarize the following email and extract action items.
 
 Subject: ${safeSubject}
 Body: ${safeBody}

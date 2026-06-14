@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { integration: string } }
+  { params }: { params: Promise<{ integration: string }> }
 ) {
   try {
     const tenantId = await getTenantId();
@@ -17,7 +17,7 @@ export async function POST(
       );
     }
 
-    const integrationName = params.integration;
+    const { integration: integrationName } = await params;
 
     // First, get the integration ID for the given integration name
     const integration = await db

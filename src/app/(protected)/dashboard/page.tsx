@@ -90,6 +90,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchMessages()
+    // Prewarm briefing cache in the background
+    fetch("/api/ai/briefing/prewarm", { method: "POST" }).catch((err) =>
+      console.error("Failed to prewarm briefing cache:", err)
+    )
   }, [])
 
   const emailsWithPriority = useMemo(() => {
@@ -98,7 +102,7 @@ export default function DashboardPage() {
         email.from.toLowerCase().includes(sender.toLowerCase())
       )
       const isUnread = unreadState[email.id] ?? true
-      return { ...email, priority: isHighPriority ? "high" : "normal", isUnread }
+      return { ...email, priority: (isHighPriority ? "high" : "normal") as "high" | "normal", isUnread }
     })
   }, [emails, unreadState])
 

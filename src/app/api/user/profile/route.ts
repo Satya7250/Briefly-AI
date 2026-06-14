@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getTenantId } from "@/lib/auth";
 import { getUserProfile } from "@/features/mail/server/gmail-service";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { user as users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET() {

@@ -22,7 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon, Loader2 } from "lucide-react"
-import { clearAppStorage } from "@/lib/logout"
+import { authClient } from "@/lib/auth-client"
 
 interface UserProfile {
   email: string
@@ -66,10 +66,20 @@ export function NavUser() {
   const displayName = userProfile?.displayName || userProfile?.email || "User"
   const email = userProfile?.email
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggingOut(true)
-    clearAppStorage()
-    window.location.href = "/api/auth/logout"
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = "/sign-in"
+          }
+        }
+      })
+    } catch (err) {
+      console.error("Error signing out:", err)
+      setIsLoggingOut(false)
+    }
   }
 
   if (loadingProfile) {

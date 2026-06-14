@@ -20,7 +20,7 @@ export function QuickActions() {
           Open Calendar
         </Button>
         <Button variant="secondary" className="w-full" onClick={() => router.push("/dashboard/briefing")}>
-          Ask Briefing AI
+          Ask Briefly AI
         </Button>
         <Button variant="secondary" className="w-full" onClick={() => router.push("/dashboard/inbox")}>
           Search Inbox

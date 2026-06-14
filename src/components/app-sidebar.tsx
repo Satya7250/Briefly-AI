@@ -28,7 +28,7 @@ const SHORTCUTS = [
   { keys: ["Alt", "D"], description: "Go to Dashboard" },
   { keys: ["Alt", "I"], description: "Go to Inbox" },
   { keys: ["Alt", "C"], description: "Go to Calendar" },
-  { keys: ["Alt", "B"], description: "Go to Briefing" },
+  { keys: ["Alt", "B"], description: "Go to Briefly" },
   { keys: ["J"], description: "Next Email" },
   { keys: ["K"], description: "Previous Email" },
   { keys: ["Enter"], description: "Open Email" },
@@ -53,7 +53,7 @@ const data = {
       icon: <CalendarIcon />,
     },
     {
-      title: "Briefing",
+      title: "Briefly",
       url: "/dashboard/briefing",
       icon: <SparklesIcon />,
     },
@@ -86,7 +86,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               >
                 <a href="/dashboard">
                   <SparklesIcon className="size-5!" />
-                  <span className="text-base font-semibold">Briefing</span>
+                  <span className="text-base font-semibold">Briefly</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

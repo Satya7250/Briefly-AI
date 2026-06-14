@@ -1,4 +1,3 @@
 // Database schemas will be exported from here
 export * from "./corsair";
-export * from "./users";
-
+export * from "./auth-schema";

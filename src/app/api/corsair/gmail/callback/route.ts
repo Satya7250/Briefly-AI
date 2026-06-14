@@ -1,9 +1,8 @@
 import { corsair } from "@/corsair/client"
 import { processOAuthCallback } from "corsair/oauth"
 import { NextRequest, NextResponse } from "next/server"
-import { setTenantId } from "@/lib/auth"
 import { db } from "@/db"
-import { users } from "@/db/schema"
+import { user as users } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { getUserProfile } from "@/features/mail/server/gmail-service"
 
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
     console.log("[GMAIL_CALLBACK] getUserProfile returned:", profile)
     if (profile) {
       email = profile.email
-      name = profile.displayName
+      name = profile.displayName ?? null
     }
   } catch (err) {
     console.error("[GMAIL_CALLBACK] Error calling getUserProfile:", err)
@@ -61,7 +60,7 @@ export async function GET(request: NextRequest) {
       await db.insert(users).values({
         id: oauthResult.tenantId,
         email,
-        name,
+        name: name ?? "User",
       })
       console.log("[GMAIL_CALLBACK] User created successfully")
     } else {
@@ -84,8 +83,7 @@ export async function GET(request: NextRequest) {
     new URL(destination, request.nextUrl.origin)
   )
 
-  console.log("[GMAIL_CALLBACK] Setting tenant cookie")
-  setTenantId(oauthResult.tenantId, response)
+  // Legacy setTenantId cookie setter removed (session is now managed by Better Auth)
 
   console.log("========== [GMAIL_CALLBACK] END ==========\n")
   return response

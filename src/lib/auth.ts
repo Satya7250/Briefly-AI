@@ -1,41 +1,34 @@
-import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
-import { SESSION_COOKIE_NAME } from "@/constants/auth"
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { nextCookies } from "better-auth/next-js";
+import { headers } from "next/headers";
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema,
+  }),
+
+  emailAndPassword: {
+    enabled: true,
+  },
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+
+  plugins: [nextCookies()],
+});
 
 export async function getTenantId(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const cookieValue = cookieStore.get(SESSION_COOKIE_NAME)?.value
-  console.log("[AUTH_LIB] getTenantId(), cookie present:", !!cookieValue)
-  return cookieValue || null
-}
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-export function setTenantId(
-  tenantId: string,
-  response: NextResponse
-): NextResponse {
-  console.log("[AUTH_LIB] setTenantId() called")
-  response.cookies.set(
-    SESSION_COOKIE_NAME,
-    tenantId,
-    {
-      httpOnly: true,
-      secure:
-        process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    }
-  )
-  console.log("[AUTH_LIB] Cookie set successfully")
-  return response
-}
-
-export function clearTenantId(
-  response: NextResponse
-): NextResponse {
-  console.log("[AUTH_LIB] clearTenantId() called")
-  response.cookies.delete(
-    SESSION_COOKIE_NAME
-  )
-  return response
+  return session?.user.id ?? null;
 }

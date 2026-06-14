@@ -4,6 +4,7 @@ import { getTenantId } from "@/lib/auth";
 import { getInboxMessages, getMessageById, getUnreadEmails } from "@/features/mail/server/gmail-service";
 import { getCalendarEvents } from "@/features/calendar/server/calendar-service";
 import { getIntegrationStatus } from "@/lib/integrations";
+import { briefingCache } from "@/lib/briefing-cache";
 
 type Intent = 
   | "EMAIL_SUMMARY"
@@ -86,7 +87,73 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
+async function getStaticResponseForIntent(
+  intent: Intent,
+  emails: any[],
+  events: any[],
+  openai: OpenAI
+): Promise<string> {
+  switch (intent) {
+    case "EMAIL_SUMMARY": {
+      const prioritizedEmails = await Promise.all(
+        emails.map(async (email) => ({
+          ...email,
+          priority: await classifyEmailPriority(email, openai)
+        }))
+      );
+      
+      const highPriority = prioritizedEmails.filter(e => e.priority === "HIGH");
+      const mediumPriority = prioritizedEmails.filter(e => e.priority === "MEDIUM");
+      const lowPriority = prioritizedEmails.filter(e => e.priority === "LOW");
+
+      return `Today's Briefing\n\n🔴 Needs Attention\n${highPriority.length > 0 ? highPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• None"}\n\n🟡 Important\n${mediumPriority.length > 0 ? mediumPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• None"}\n\n⚪ Low Priority\n${lowPriority.length > 0 ? lowPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• None"}\n`;
+    }
+
+    case "PRIORITY_BRIEFING": {
+      const prioritizedEmails = await Promise.all(
+        emails.map(async (email) => ({
+          ...email,
+          priority: await classifyEmailPriority(email, openai)
+        }))
+      );
+      
+      const highPriority = prioritizedEmails.filter(e => e.priority === "HIGH");
+
+      return `Today's Briefing\n\n🔴 Needs Attention\n${highPriority.length > 0 ? highPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• No high priority emails"}\n`;
+    }
+
+    case "CALENDAR_SUMMARY": {
+      const today = new Date();
+      const todayEvents = events.filter(e => {
+        if (!e.start) return false;
+        const eventDate = new Date(e.start);
+        return eventDate.toDateString() === today.toDateString();
+      }).sort((a, b) => {
+        if (!a.start || !b.start) return 0;
+        return a.start.getTime() - b.start.getTime();
+      });
+
+      return `Today's Schedule\n\n${todayEvents.length > 0 
+        ? todayEvents.map(event => `${event.start ? formatTime(event.start) : "All day"} ${event.summary || "Untitled event"}`).join("\n")
+        : "No meetings scheduled for today."
+      }`;
+    }
+
+    case "UNREAD_EMAILS": {
+      const unreadEmails = emails.filter(e => e.isUnread ?? true);
+      return `Unread Emails\n\n${unreadEmails.length > 0 
+        ? unreadEmails.map(email => `• ${email.subject} (from ${email.from})`).join("\n")
+        : "No unread emails."
+      }`;
+    }
+    
+    default:
+      return "";
+  }
+}
+
 export async function POST(request: NextRequest) {
+  const startTotal = Date.now();
   try {
     const tenantId = await getTenantId();
     if (!tenantId) {
@@ -106,15 +173,44 @@ export async function POST(request: NextRequest) {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "Superhuman Clone",
+        "X-Title": "Briefly",
       },
     });
 
     const integrationStatus = await getIntegrationStatus(tenantId);
-
     const intent = await detectIntent(lastMessage, openai);
 
-    let response: string = "";
+    // 4. Return cached briefing instantly when available (Target: < 50ms)
+    const cached = briefingCache.get(tenantId);
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+    if (intent === "EMAIL_SUMMARY" && cached && (Date.now() - cached.createdAt < CACHE_TTL)) {
+      console.log(`[CACHE] Serving cached briefing in POST for tenant: ${tenantId}`);
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          const send = (text: string) => controller.enqueue(encoder.encode(text));
+          
+          const text = cached.briefing;
+          const chunkSize = 16;
+          for (let i = 0; i < text.length; i += chunkSize) {
+            send(text.substring(i, i + chunkSize));
+            await new Promise(resolve => setTimeout(resolve, 5));
+          }
+          controller.close();
+          const totalTime = Date.now() - startTotal;
+          console.log(`[LATENCY] CACHE HIT | Gmail: 0ms | Calendar: 0ms | AI: 0ms | Total: ${totalTime}ms`);
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        }
+      });
+    }
 
     // Handle Gmail required intents
     if ([
@@ -125,227 +221,231 @@ export async function POST(request: NextRequest) {
       "ACTION_ITEMS"
     ].includes(intent)) {
       if (!integrationStatus.gmailConnected) {
-        return NextResponse.json({ content: "Gmail is not connected." });
+        return new Response("Gmail is not connected. Please connect it first.", {
+          headers: { "Content-Type": "text/plain; charset=utf-8" }
+        });
       }
     }
 
     // Handle Calendar required intents
     if (["CALENDAR_SUMMARY", "PREPARE_MEETINGS"].includes(intent)) {
       if (!integrationStatus.calendarConnected) {
-        return NextResponse.json({ content: "Google Calendar is not connected." });
+        return new Response("Google Calendar is not connected. Please connect it first.", {
+          headers: { "Content-Type": "text/plain; charset=utf-8" }
+        });
       }
     }
 
-    switch (intent) {
-      case "EMAIL_SUMMARY": {
-        const emails = await getInboxMessages(tenantId);
-        const prioritizedEmails = await Promise.all(
-          emails.map(async (email) => ({
-            ...email,
-            priority: await classifyEmailPriority(email, openai)
-          }))
-        );
-        
-        const highPriority = prioritizedEmails.filter(e => e.priority === "HIGH");
-        const mediumPriority = prioritizedEmails.filter(e => e.priority === "MEDIUM");
-        const lowPriority = prioritizedEmails.filter(e => e.priority === "LOW");
+    // 6. Parallelize Operations: Fetch Gmail and Calendar simultaneously
+    let gmailTime = 0;
+    let calendarTime = 0;
 
-        response = `Today's Briefing
-
-🔴 Needs Attention
-${highPriority.length > 0 ? highPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• None"}
-
-🟡 Important
-${mediumPriority.length > 0 ? mediumPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• None"}
-
-⚪ Low Priority
-${lowPriority.length > 0 ? lowPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• None"}
-`;
-        break;
+    const gmailPromise = (async () => {
+      if (!integrationStatus.gmailConnected) return [];
+      const start = Date.now();
+      try {
+        const res = await getInboxMessages(tenantId);
+        gmailTime = Date.now() - start;
+        return res;
+      } catch (e) {
+        console.error("Error fetching Gmail:", e);
+        return [];
       }
+    })();
 
-      case "PRIORITY_BRIEFING": {
-        const emails = await getInboxMessages(tenantId);
-        const prioritizedEmails = await Promise.all(
-          emails.map(async (email) => ({
-            ...email,
-            priority: await classifyEmailPriority(email, openai)
-          }))
-        );
-        
-        const highPriority = prioritizedEmails.filter(e => e.priority === "HIGH");
-
-        response = `Today's Briefing
-
-🔴 Needs Attention
-${highPriority.length > 0 ? highPriority.map(e => `• ${e.subject} (from ${e.from})`).join("\n") : "• No high priority emails"}
-`;
-        break;
+    const calendarPromise = (async () => {
+      if (!integrationStatus.calendarConnected) return [];
+      const start = Date.now();
+      try {
+        const res = await getCalendarEvents(tenantId);
+        calendarTime = Date.now() - start;
+        return res;
+      } catch (e) {
+        console.error("Error fetching Calendar:", e);
+        return [];
       }
+    })();
 
-      case "CALENDAR_SUMMARY": {
-        const events = await getCalendarEvents(tenantId);
-        const today = new Date();
-        const todayEvents = events.filter(e => {
-          if (!e.start) return false;
-          const eventDate = new Date(e.start);
-          return eventDate.toDateString() === today.toDateString();
-        }).sort((a, b) => {
-          if (!a.start || !b.start) return 0;
-          return a.start.getTime() - b.start.getTime();
-        });
+    const [emails, events] = await Promise.all([gmailPromise, calendarPromise]);
 
-        response = `Today's Schedule
+    // 2. Pre-process data: Create compact summary object to minimize tokens
+    // 3. Reduce prompt size: Limit to top 10 emails and today's events, no raw body
+    const processedEmails = emails.slice(0, 10).map(e => ({
+      id: e.id,
+      subject: e.subject,
+      from: e.from,
+      snippet: e.snippet,
+    }));
 
-${todayEvents.length > 0 
-  ? todayEvents.map(event => `${event.start ? formatTime(event.start) : "All day"} ${event.summary || "Untitled event"}`).join("\n")
-  : "No meetings scheduled for today."
-}`;
-        break;
-      }
+    const today = new Date().toDateString();
+    const processedEvents = events
+      .filter(e => e.start && new Date(e.start).toDateString() === today)
+      .map(e => ({
+        summary: e.summary || "Untitled Event",
+        start: e.start ? formatTime(e.start) : "All day",
+        end: e.end ? formatTime(e.end) : undefined,
+      }));
 
-      case "UNREAD_EMAILS": {
-        const unreadEmails = await getUnreadEmails(tenantId);
-        response = `Unread Emails
+    // Return a streaming response
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const send = (text: string) => {
+          controller.enqueue(encoder.encode(text));
+        };
 
-${unreadEmails.length > 0 
-  ? unreadEmails.map(email => `• ${email.subject} (from ${email.from})`).join("\n")
-  : "No unread emails."
-}`;
-        break;
-      }
+        const streamStaticResponse = async (text: string) => {
+          const chunkSize = 16;
+          for (let i = 0; i < text.length; i += chunkSize) {
+            send(text.substring(i, i + chunkSize));
+            await new Promise(resolve => setTimeout(resolve, 8));
+          }
+        };
 
-      case "PREPARE_MEETINGS": {
-        const events = await getCalendarEvents(tenantId);
-        const today = new Date();
-        const todayEvents = events.filter(e => {
-          if (!e.start) return false;
-          const eventDate = new Date(e.start);
-          return eventDate.toDateString() === today.toDateString();
-        }).sort((a, b) => {
-          if (!a.start || !b.start) return 0;
-          return a.start.getTime() - b.start.getTime();
-        });
+        const startAI = Date.now();
+        try {
+          switch (intent) {
+            case "EMAIL_SUMMARY":
+            case "PRIORITY_BRIEFING":
+            case "CALENDAR_SUMMARY":
+            case "UNREAD_EMAILS": {
+              const text = await getStaticResponseForIntent(intent, processedEmails, events, openai);
+              await streamStaticResponse(text);
+              break;
+            }
 
-        if (todayEvents.length === 0) {
-          response = "No meetings scheduled for today.";
-          break;
-        }
+            case "PREPARE_MEETINGS": {
+              if (processedEvents.length === 0) {
+                send("No meetings scheduled for today.");
+                break;
+              }
 
-        let meetingsText = "";
-        for (const event of todayEvents) {
-          const preparationPrompt = `
+              send("Preparing You for Today's Meetings\n");
+              for (const event of processedEvents) {
+                send(`\nMeeting: ${event.summary}\nTime: ${event.start}${event.end ? ` - End: ${event.end}` : ""}\nPreparation Notes:\n`);
+                
+                const preparationPrompt = `
 Prepare meeting notes for this event:
 - Title: ${event.summary}
-- Description: ${event.description || "No description"}
 
 Provide preparation notes in bullet points.
 `;
-          const prepCompletion = await openai.chat.completions.create({
-            model: "openai/gpt-4o-mini",
-            messages: [{ role: "user", content: preparationPrompt }],
-          });
-          meetingsText += `
-Meeting: ${event.summary || "Untitled event"}
-Time: ${event.start ? formatTime(event.start) : "All day"}
-${event.end ? `- End: ${formatTime(event.end)}` : ""}
-Preparation Notes:
-${prepCompletion.choices[0].message.content || "• Review agenda"}
-`;
-        }
+                const prepCompletion = await openai.chat.completions.create({
+                  model: "openai/gpt-4o-mini",
+                  messages: [{ role: "user", content: preparationPrompt }],
+                  stream: true,
+                });
+                for await (const chunk of prepCompletion) {
+                  const content = chunk.choices[0]?.delta?.content || "";
+                  if (content) send(content);
+                }
+                send("\n");
+              }
+              break;
+            }
 
-        response = `Preparing You for Today's Meetings
-${meetingsText}`;
-        break;
-      }
-
-      case "ACTION_ITEMS": {
-        const emails = await getInboxMessages(tenantId);
-        const prompt = `
-Extract action items from these emails. Look for:
-- Tasks
-- Commitments
-- Deadlines
-- Follow-ups
+            case "ACTION_ITEMS": {
+              const prompt = `
+Extract action items from these emails. Look for tasks, commitments, deadlines, and follow-ups.
 
 Emails:
-${emails.slice(0, 10).map(email => `Subject: ${email.subject}\nFrom: ${email.from}\nSnippet: ${email.snippet}`).join("\n\n")}
+${processedEmails.map(email => `Subject: ${email.subject}\nFrom: ${email.from}\nSnippet: ${email.snippet}`).join("\n\n")}
 
 Return only the action items as numbered list.
 `;
-        const completion = await openai.chat.completions.create({
-          model: "openai/gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-        });
+              const completion = await openai.chat.completions.create({
+                model: "openai/gpt-4o-mini",
+                messages: [{ role: "user", content: prompt }],
+                stream: true,
+              });
+              for await (const chunk of completion) {
+                const content = chunk.choices[0]?.delta?.content || "";
+                if (content) send(content);
+              }
+              break;
+            }
 
-        response = `Action Items
-${completion.choices[0].message.content || "• No action items identified"}`;
-        break;
-      }
-
-      case "EMAIL_REPLY": {
-        const emails = await getInboxMessages(tenantId);
-        if (emails.length === 0) {
-          response = "No emails to reply to.";
-          break;
-        }
-        
-        const latestEmailId = emails[0].id;
-        const latestEmail = await getMessageById(tenantId, latestEmailId);
-        
-        const prompt = `
+            case "EMAIL_REPLY": {
+              if (processedEmails.length === 0) {
+                send("No emails to reply to.");
+                break;
+              }
+              
+              const latestEmail = processedEmails[0];
+              const prompt = `
 Draft a professional reply to this email:
-From: ${latestEmail.sender}
+From: ${latestEmail.from}
 Subject: ${latestEmail.subject}
-Body: ${latestEmail.body.substring(0, 3000)}
+Snippet: ${latestEmail.snippet}
 
 Please draft a professional reply.
 `;
-        
-        const completion = await openai.chat.completions.create({
-          model: "openai/gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-        });
-        
-        response = `Reply draft to "${latestEmail.subject}" (from ${latestEmail.sender}):\n\n${completion.choices[0].message.content || "I'm sorry, I couldn't draft a reply."}`;
-        break;
-      }
+              const completion = await openai.chat.completions.create({
+                model: "openai/gpt-4o-mini",
+                messages: [{ role: "user", content: prompt }],
+                stream: true,
+              });
+              send(`Reply draft to "${latestEmail.subject}" (from ${latestEmail.from}):\n\n`);
+              for await (const chunk of completion) {
+                const content = chunk.choices[0]?.delta?.content || "";
+                if (content) send(content);
+              }
+              break;
+            }
 
-      case "GENERAL_QUESTION":
-      default: {
-        const emails = integrationStatus.gmailConnected ? await getInboxMessages(tenantId) : [];
-        const events = integrationStatus.calendarConnected ? await getCalendarEvents(tenantId) : [];
-        
-        const context = `
+            case "GENERAL_QUESTION":
+            default: {
+              const context = `
 ${integrationStatus.gmailConnected ? `
 Recent emails:
-${emails.slice(0, 5).map(e => `- ${e.subject} (from ${e.from})`).join("\n")}
+${processedEmails.slice(0, 5).map(e => `- ${e.subject} (from ${e.from})`).join("\n")}
 ` : "Gmail not connected."}
 
 ${integrationStatus.calendarConnected ? `
 Today's calendar events:
-${events.filter(e => e.start && new Date(e.start).toDateString() === new Date().toDateString()).map(e => `${e.summary || "Untitled"} at ${e.start ? formatTime(e.start) : "All day"}`).join("\n")}
+${processedEvents.map(e => `- ${e.summary} at ${e.start}`).join("\n")}
 ` : "Calendar not connected."}
 `;
-        
-        const systemPrompt = `
-You are Briefing AI, an executive email and calendar assistant for Superhuman. Use the following context to answer the user's question concisely and helpfully.
+              const systemPrompt = `
+You are Briefly AI, an executive assistant focused on email, calendar, and productivity. Use the following context to answer the user's question concisely and helpfully.
 ${context}
 `;
-        
-        const completion = await openai.chat.completions.create({
-          model: "openai/gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages
-          ],
-        });
-        
-        response = completion.choices[0].message.content || "I'm sorry, I couldn't generate a response.";
-      }
-    }
+              const completion = await openai.chat.completions.create({
+                model: "openai/gpt-4o-mini",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  ...messages
+                ],
+                stream: true,
+              });
+              for await (const chunk of completion) {
+                const content = chunk.choices[0]?.delta?.content || "";
+                if (content) send(content);
+              }
+              break;
+            }
+          }
 
-    return NextResponse.json({ content: response });
+          // 9. Measure Latency
+          const aiTime = Date.now() - startAI;
+          const totalTime = Date.now() - startTotal;
+          console.log(`[LATENCY] Gmail fetch time: ${gmailTime}ms | Calendar fetch time: ${calendarTime}ms | AI generation time: ${aiTime}ms | Total response time: ${totalTime}ms`);
+        } catch (error: any) {
+          console.error("Error during streaming generation:", error);
+          send(`\nError generating response: ${error.message || "Unknown error"}`);
+        } finally {
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      }
+    });
   } catch (error) {
     console.error("Error in briefing chat:", error);
     return NextResponse.json(

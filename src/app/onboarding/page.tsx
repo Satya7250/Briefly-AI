@@ -70,7 +70,7 @@ export default function OnboardingPage() {
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
             <SparklesIcon className="size-10 text-primary" />
-            <h1 className="text-3xl font-bold">Welcome to Briefing</h1>
+            <h1 className="text-3xl font-bold">Welcome to Briefly</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Connect your accounts to unlock:
@@ -78,7 +78,7 @@ export default function OnboardingPage() {
           <ul className="flex flex-wrap justify-center gap-4 text-sm">
             <li>• Inbox intelligence</li>
             <li>• Calendar insights</li>
-            <li>• Briefing AI</li>
+            <li>• Briefly AI</li>
             <li>• Productivity analytics</li>
           </ul>
         </div>

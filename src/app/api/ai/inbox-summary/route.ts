@@ -22,7 +22,7 @@ export async function GET() {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "Superhuman Clone",
+        "X-Title": "Briefly",
       },
     });
 
@@ -30,7 +30,7 @@ export async function GET() {
       `Email ${index + 1}:\n- Subject: ${msg.subject}\n- From: ${msg.from}\n- Snippet: ${msg.snippet}\n`
     ).join("\n");
 
-    const systemPrompt = `You are a helpful AI assistant for email management. 
+    const systemPrompt = `You are Briefly AI, an executive assistant focused on email, calendar, and productivity. 
       Summarize the user's inbox, highlighting important emails, key topics, and any action items. 
       Be concise and organized.`;
 

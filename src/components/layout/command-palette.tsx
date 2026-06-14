@@ -38,7 +38,7 @@ export function CommandPalette() {
             Go to Dashboard
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/briefing"))}>
-            Go to Briefing
+            Go to Briefly
           </CommandItem>
         </CommandGroup>
       </CommandList>
