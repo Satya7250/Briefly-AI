@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/db";
-import { corsairAccounts, corsairIntegrations } from "@/db/schema/corsair";
+import { corsairAccounts, corsairIntegrations, corsairEntities, corsairEvents } from "@/db/schema/corsair";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(
@@ -36,6 +36,24 @@ export async function POST(
     const integrationId = integration[0].id;
 
     // Delete the account for this tenant and integration
+    // Fetch account IDs for the tenant & integration
+    const accounts = await db
+      .select({ id: corsairAccounts.id })
+      .from(corsairAccounts)
+      .where(
+        and(
+          eq(corsairAccounts.tenantId, tenantId),
+          eq(corsairAccounts.integrationId, integrationId)
+        )
+      );
+
+    // Delete related entities and events for each account
+    for (const acc of accounts) {
+      await db.delete(corsairEntities).where(eq(corsairEntities.accountId, acc.id));
+      await db.delete(corsairEvents).where(eq(corsairEvents.accountId, acc.id));
+    }
+
+    // Delete the account(s)
     await db
       .delete(corsairAccounts)
       .where(

@@ -6,6 +6,8 @@ import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { useIntegrationStatus } from "@/hooks/use-integration-status"
+import { Button } from "@/components/ui/button"
 import {
   Sidebar,
   SidebarContent,
@@ -74,6 +76,19 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [isHelpOpen, setIsHelpOpen] = React.useState(false)
+  const [isConnectOpen, setIsConnectOpen] = React.useState(false)
+  const { status, loading } = useIntegrationStatus()
+
+  // Open connection dialog on first dashboard visit if integrations missing
+  React.useEffect(() => {
+    if (!loading && status && (!status.gmailConnected || !status.calendarConnected)) {
+      const prompted = window.localStorage.getItem('integrationPrompted')
+      if (!prompted) {
+        setIsConnectOpen(true)
+        window.localStorage.setItem('integrationPrompted', 'true')
+      }
+    }
+  }, [loading, status])
 
   return (
     <>
@@ -93,6 +108,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
+        {/* Auto-open connection dialog if integrations missing */}
+        {/* Side-effect moved to useEffect */}
         <SidebarContent>
           <NavMain items={data.navMain} />
           <NavDocuments items={data.documents} />
@@ -139,6 +156,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
               </div>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Connection Prompt Dialog */}
+      <Dialog open={isConnectOpen} onOpenChange={setIsConnectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Connect Your Integrations</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {!status?.gmailConnected && (
+              <Button variant="outline" onClick={() => window.location.href = "/api/corsair/gmail/connect"} className="w-full">
+                Connect Email (Gmail)
+              </Button>
+            )}
+            {!status?.calendarConnected && (
+              <Button variant="outline" onClick={() => window.location.href = "/api/corsair/googlecalendar/connect"} className="w-full">
+                Connect Calendar (Google)
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

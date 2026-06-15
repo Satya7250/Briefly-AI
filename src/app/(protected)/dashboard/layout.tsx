@@ -1,7 +1,8 @@
+// Server component (no client directive)
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { UnreadCountProvider } from "@/components/unread-context";
+import { UnreadCountWrapper } from "@/components/unread-context-wrapper";
 import dynamic from "next/dynamic";
 import React from "react";
 
@@ -16,7 +17,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <UnreadCountProvider>
+    <UnreadCountWrapper>
       <SidebarProvider
         style={
           {
@@ -40,6 +41,6 @@ export default function DashboardLayout({
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </UnreadCountProvider>
+    </UnreadCountWrapper>
   );
 }
