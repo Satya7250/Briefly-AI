@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react"
 import { getSnoozeTime, getSnoozeLabel, setSnooze } from "@/lib/snooze"
 import { toast } from "sonner"
 import { EmailReader } from "./email-reader"
+import { Logo } from "@/components/common/logo"
 
 interface AISummary {
   summary: string[]
@@ -90,9 +91,18 @@ export function ThreadViewer({ subject, sender, body, messageId, onSnooze }: Thr
 
   if (!subject) {
     return (
-      <Card className="flex-1 flex items-center justify-center">
-        <CardContent className="text-muted-foreground">
-          Select an email to view the conversation
+      <Card className="flex-1 flex flex-col items-center justify-center p-8 border-dashed">
+        <CardContent className="flex flex-col items-center text-center space-y-4 max-w-sm select-none">
+          <div className="relative">
+            <div className="absolute -inset-4 rounded-full bg-primary/5 blur-md" />
+            <Logo width={64} height={64} className="opacity-40 animate-pulse relative" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-semibold text-foreground/80 tracking-tight">No Conversation Selected</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Select an email from the inbox list to view messages, drafts, and AI key points.
+            </p>
+          </div>
         </CardContent>
       </Card>
     )
@@ -139,7 +149,7 @@ export function ThreadViewer({ subject, sender, body, messageId, onSnooze }: Thr
               {!isAiSummaryCollapsed && (
                 <CardContent className="pt-0 space-y-4">
                   {loading && <p className="text-sm text-muted-foreground">Generating AI Summary...</p>}
-                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  {error && <p className="text-sm text-muted-foreground">{error}</p>}
                   {aiSummary && !loading && !error && (
                     <>
                       <div>

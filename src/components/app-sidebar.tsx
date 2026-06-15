@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Logo } from "@/components/common/logo"
 import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, CalendarIcon, SparklesIcon } from "lucide-react"
 
 const SHORTCUTS = [
@@ -82,11 +83,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                className="data-[slot=sidebar-menu-button]:p-1.5!"
+                className="data-[slot=sidebar-menu-button]:p-1.5! transition-all duration-300"
               >
-                <a href="/dashboard">
-                  <SparklesIcon className="size-5!" />
-                  <span className="text-base font-semibold">Briefly</span>
+                <a href="/dashboard" className="flex items-center gap-2">
+                  <Logo width={22} height={22} className="shrink-0 transition-transform duration-300 hover:scale-110" />
+                  <span className="text-base font-semibold tracking-tight text-foreground transition-opacity duration-300">Briefly</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

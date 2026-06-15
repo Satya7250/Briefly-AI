@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MailIcon, CalendarIcon, SparklesIcon, CheckCircleIcon } from "lucide-react"
+import { MailIcon, CalendarIcon, CheckCircleIcon } from "lucide-react"
+import { Logo } from "@/components/common/logo"
 import { redirect } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -67,19 +68,19 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/50 p-6">
       <div className="w-full max-w-4xl space-y-8">
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <SparklesIcon className="size-10 text-primary" />
-            <h1 className="text-3xl font-bold">Welcome to Briefly</h1>
+        <div className="text-center space-y-4 animate-in fade-in zoom-in duration-300">
+          <div className="flex flex-col items-center justify-center gap-3">
+            <Logo width={96} height={96} priority className="animate-pulse" />
+            <h1 className="text-3xl font-bold tracking-tight">Welcome to Briefly</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Connect your accounts to unlock:
           </p>
-          <ul className="flex flex-wrap justify-center gap-4 text-sm">
-            <li>• Inbox intelligence</li>
-            <li>• Calendar insights</li>
-            <li>• Briefly AI</li>
-            <li>• Productivity analytics</li>
+          <ul className="flex flex-wrap justify-center gap-4 text-sm font-medium text-muted-foreground">
+            <li className="bg-background px-3 py-1.5 rounded-full border shadow-sm">• Inbox intelligence</li>
+            <li className="bg-background px-3 py-1.5 rounded-full border shadow-sm">• Calendar insights</li>
+            <li className="bg-background px-3 py-1.5 rounded-full border shadow-sm">• Briefly AI</li>
+            <li className="bg-background px-3 py-1.5 rounded-full border shadow-sm">• Productivity analytics</li>
           </ul>
         </div>
 

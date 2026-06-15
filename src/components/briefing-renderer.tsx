@@ -38,7 +38,7 @@ const sectionConfig: Record<string, {
   topAccent: string;
 }> = {
   priority: {
-    border: "border-[#27272A] hover:border-red-500/40",
+    border: "border-border hover:border-red-500/40",
     glow: "hover:shadow-[0_0_22px_-4px_rgba(239,68,68,0.1)]",
     badge: "text-red-400 border-red-500/20 bg-red-500/10",
     badgeBg: "bg-red-500/10 text-red-400",
@@ -46,7 +46,7 @@ const sectionConfig: Record<string, {
     topAccent: "from-red-500 to-rose-600",
   },
   meetings: {
-    border: "border-[#27272A] hover:border-blue-500/40",
+    border: "border-border hover:border-blue-500/40",
     glow: "hover:shadow-[0_0_22px_-4px_rgba(59,130,246,0.1)]",
     badge: "text-blue-400 border-blue-500/20 bg-blue-500/10",
     badgeBg: "bg-blue-500/10 text-blue-400",
@@ -54,7 +54,7 @@ const sectionConfig: Record<string, {
     topAccent: "from-blue-500 to-indigo-600",
   },
   follow_ups: {
-    border: "border-[#27272A] hover:border-amber-500/40",
+    border: "border-border hover:border-amber-500/40",
     glow: "hover:shadow-[0_0_22px_-4px_rgba(245,158,11,0.1)]",
     badge: "text-amber-400 border-amber-500/20 bg-amber-500/10",
     badgeBg: "bg-amber-500/10 text-amber-400",
@@ -62,7 +62,7 @@ const sectionConfig: Record<string, {
     topAccent: "from-amber-500 to-yellow-600",
   },
   focus: {
-    border: "border-[#27272A] hover:border-[#8B5CF6]/40",
+    border: "border-border hover:border-[#8B5CF6]/40",
     glow: "hover:shadow-[0_0_22px_-4px_rgba(139,92,246,0.1)]",
     badge: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#8B5CF6]/10",
     badgeBg: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
@@ -515,7 +515,7 @@ export function BriefingRenderer({ content, createdAt, isStreaming }: BriefingRe
             <Card 
               key={section.key + idx} 
               className={cn(
-                "group relative overflow-hidden rounded-2xl bg-[#111113] border-[#27272A] transition-all duration-300 hover:-translate-y-0.5 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-md",
+                "group relative overflow-hidden rounded-2xl bg-card border-border text-card-foreground transition-all duration-300 hover:-translate-y-0.5 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-md",
                 config.border,
                 config.glow
               )}
@@ -556,16 +556,16 @@ export function BriefingRenderer({ content, createdAt, isStreaming }: BriefingRe
                       return (
                         <div 
                           key={itemIdx} 
-                          className="flex gap-3.5 p-3.5 rounded-xl border border-[#27272A] bg-[#09090B]/30 hover:bg-[#09090B]/60 hover:border-red-500/25 transition-all duration-200 group/email"
+                          className="flex gap-3.5 p-3.5 rounded-xl border border-border bg-background/30 hover:bg-background/60 hover:border-red-500/25 transition-all duration-200 group/email"
                         >
-                          <Avatar className="size-8.5 shrink-0 rounded-xl border border-[#27272A] bg-[#27272A]/50 select-none">
+                          <Avatar className="size-8.5 shrink-0 rounded-xl border border-border bg-muted/50 select-none">
                             <AvatarFallback className="bg-transparent text-xs text-red-400 font-bold uppercase flex items-center justify-center">
                               {avatarLetter}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2.5 flex-wrap">
-                              <span className="font-semibold text-[13px] text-white leading-tight truncate">
+                              <span className="font-semibold text-[13px] text-card-foreground leading-tight truncate">
                                 {item.title}
                                 {showItemCursor && !item.explanation && cursor}
                               </span>
@@ -613,13 +613,13 @@ export function BriefingRenderer({ content, createdAt, isStreaming }: BriefingRe
                         return (
                           <div 
                             key={itemIdx} 
-                            className="flex gap-3.5 p-3 rounded-xl border border-[#27272A] bg-[#09090B]/30 hover:bg-[#09090B]/60 hover:border-blue-500/25 transition-all duration-200"
+                            className="flex gap-3.5 p-3 rounded-xl border border-border bg-background/30 hover:bg-background/60 hover:border-blue-500/25 transition-all duration-200"
                           >
                             <div className="flex flex-col items-center justify-center px-2 py-1 bg-blue-500/10 text-blue-450 border border-blue-500/15 rounded-lg shrink-0 text-[10px] font-extrabold min-w-[70px] select-none text-center">
                               {rawTime}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="font-semibold text-[13px] text-white leading-tight block truncate">
+                              <span className="font-semibold text-[13px] text-card-foreground leading-tight block truncate">
                                 {item.title}
                                 {showItemCursor && !item.explanation && cursor}
                               </span>
@@ -648,15 +648,15 @@ export function BriefingRenderer({ content, createdAt, isStreaming }: BriefingRe
                       return (
                         <div 
                           key={itemIdx} 
-                          className="flex items-start gap-3.5 p-3.5 rounded-xl border border-[#27272A] bg-[#09090B]/30 hover:bg-[#09090B]/60 hover:border-amber-500/25 transition-all duration-200 group/task"
+                          className="flex items-start gap-3.5 p-3.5 rounded-xl border border-border bg-background/30 hover:bg-background/60 hover:border-amber-500/25 transition-all duration-200 group/task"
                         >
-                          <div className="flex items-center justify-center w-4.5 h-4.5 rounded-md border border-[#27272A] bg-[#09090B] group-hover/task:border-amber-500/40 text-amber-500 shrink-0 mt-0.5 transition-colors select-none">
+                          <div className="flex items-center justify-center w-4.5 h-4.5 rounded-md border border-border bg-background group-hover/task:border-amber-500/40 text-amber-500 shrink-0 mt-0.5 transition-colors select-none">
                             <div className="w-1.5 h-1.5 rounded-sm bg-transparent group-hover/task:bg-amber-500/80 transition-colors" />
                           </div>
                           <div className="flex-1 min-w-0">
                             {item.title ? (
                               <>
-                                <span className="font-semibold text-[13px] text-white leading-tight block">
+                                <span className="font-semibold text-[13px] text-card-foreground leading-tight block">
                                   {item.title}
                                   {showItemCursor && !item.explanation && cursor}
                                 </span>
@@ -707,10 +707,10 @@ export function BriefingRenderer({ content, createdAt, isStreaming }: BriefingRe
                             cursorLoc.itemIdx === itemIdx
 
                           return (
-                            <div key={itemIdx} className="flex items-start gap-3 p-3.5 rounded-xl border border-[#8B5CF6]/10 bg-[#09090B]/30 hover:bg-[#09090B]/60 hover:border-[#8B5CF6]/25 transition-all duration-200">
+                            <div key={itemIdx} className="flex items-start gap-3 p-3.5 rounded-xl border border-[#8B5CF6]/10 bg-background/30 hover:bg-background/60 hover:border-[#8B5CF6]/25 transition-all duration-200">
                               <span className="text-[#8B5CF6] mt-0.5 select-none text-xs shrink-0">🎯</span>
                               <div className="flex-1 min-w-0 text-[12.5px] leading-relaxed">
-                                {item.title && <strong className="font-semibold text-white mr-1.5">{item.title}</strong>}
+                                {item.title && <strong className="font-semibold text-card-foreground mr-1.5">{item.title}</strong>}
                                 <span className="text-muted-foreground">{renderInlineMarkdown(item.explanation)}</span>
                                 {showItemCursor && cursor}
                               </div>

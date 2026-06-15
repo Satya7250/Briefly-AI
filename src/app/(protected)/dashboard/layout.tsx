@@ -1,10 +1,14 @@
-"use client";
-
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { CommandPalette } from "@/components/layout/command-palette";
 import { UnreadCountProvider } from "@/components/unread-context";
+import dynamic from "next/dynamic";
+import React from "react";
+
+// Dynamically load the client-heavy CommandPalette to defer its library dependencies (cmdk, radix)
+const CommandPalette = dynamic(
+  () => import("@/components/layout/command-palette").then((m) => m.CommandPalette)
+);
 
 export default function DashboardLayout({
   children,

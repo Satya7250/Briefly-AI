@@ -120,11 +120,90 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   body {
-    @apply bg-background text-foreground;
-  }
+  @apply bg-background text-foreground;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
   html {
     @apply font-sans;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
+}
+
+/* Briefly custom GPU-accelerated CSS animations */
+@keyframes glow-top {
+  0%, 100% { transform: scale(1) translate(-50%, 0); opacity: 0.7; }
+  50% { transform: scale(1.06) translate(-50%, -10px); opacity: 0.9; }
+}
+@keyframes glow-left {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(25px, -30px) scale(1.04); }
+}
+@keyframes glow-right {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-35px, 25px) scale(1.05); }
+}
+@keyframes float-mockup {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes float-p-1 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.15; }
+  50% { transform: translate(15px, -40px); opacity: 0.35; }
+}
+@keyframes float-p-2 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.1; }
+  50% { transform: translate(-20px, -60px); opacity: 0.3; }
+}
+@keyframes float-p-3 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.12; }
+  50% { transform: translate(10px, -35px); opacity: 0.32; }
+}
+@keyframes float-p-4 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.15; }
+  50% { transform: translate(-15px, -50px); opacity: 0.35; }
+}
+@keyframes float-p-5 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.08; }
+  50% { transform: translate(15px, -70px); opacity: 0.28; }
+}
+@keyframes thread-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -240; }
+}
+
+.animate-glow-top {
+  animation: glow-top 14s ease-in-out infinite;
+}
+.animate-glow-left {
+  animation: glow-left 18s ease-in-out infinite;
+}
+.animate-glow-right {
+  animation: glow-right 20s ease-in-out infinite;
+}
+.animate-hero-float {
+  animation: float-mockup 6s ease-in-out infinite;
+}
+.animate-particle-1 {
+  animation: float-p-1 15s ease-in-out infinite;
+}
+.animate-particle-2 {
+  animation: float-p-2 20s ease-in-out infinite;
+}
+.animate-particle-3 {
+  animation: float-p-3 12s ease-in-out infinite;
+}
+.animate-particle-4 {
+  animation: float-p-4 17s ease-in-out infinite;
+}
+.animate-particle-5 {
+  animation: float-p-5 22s ease-in-out infinite;
+}
+.animate-thread-flow-desktop {
+  animation: thread-flow 4s linear infinite;
+}
+.animate-thread-flow-mobile {
+  animation: thread-flow 5s linear infinite;
 }

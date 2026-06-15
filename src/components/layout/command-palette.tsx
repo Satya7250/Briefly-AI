@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { Logo } from "@/components/common/logo"
 
 export function CommandPalette() {
   const router = useRouter()
@@ -24,6 +25,10 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
+      <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/20 select-none">
+        <Logo width={20} height={20} />
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Briefly Command Menu</span>
+      </div>
       <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
