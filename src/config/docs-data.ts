@@ -32,42 +32,42 @@ export const docsData: DocsData = {
     {
       id: 'dashboard',
       title: 'Dashboard',
-      icon: <LayoutDashboardIcon />, // placeholder, will be rendered in component
+      icon: null, // placeholder, will be rendered in component
       description: 'View account activity, monitor statistics, access recent activity.',
       content: 'The Dashboard provides an overview of your account activity, key metrics, and quick access to recent items.',
     },
     {
       id: 'inbox',
       title: 'Inbox',
-      icon: <FileTextIcon />, // placeholder
+      icon: null, // placeholder
       description: 'Manage incoming content, read summaries, organize communications.',
       content: 'Inbox lets you view and organize incoming emails, documents, and AI‑generated summaries.',
     },
     {
       id: 'calendar',
       title: 'Calendar',
-      icon: <CalendarIcon />, // placeholder
+      icon: null, // placeholder
       description: 'View upcoming events, manage schedules, generate schedule‑aware briefings.',
       content: 'Calendar integration displays events, allows scheduling, and powers time‑based briefings.',
     },
     {
       id: 'briefly',
       title: 'Briefly',
-      icon: <SparklesIcon />, // placeholder
+      icon: null, // placeholder
       description: 'Generate AI briefings, customize preferences, schedule automatic briefings.',
       content: 'Briefly creates AI‑powered summaries of your selected sources with customizable settings.',
     },
     {
       id: 'integrations',
       title: 'Integrations',
-      icon: <DatabaseIcon />, // placeholder
+      icon: null, // placeholder
       description: 'Connect external services, manage connected accounts.',
       content: 'Integrations let you link Gmail, Google Calendar, and other third‑party services.',
     },
     {
       id: 'settings',
       title: 'Settings',
-      icon: <Settings2Icon />, // placeholder
+      icon: null, // placeholder
       description: 'Profile management, notifications, personal preferences.',
       content: 'Settings allows you to edit profile details, notification preferences, and other options.',
     },

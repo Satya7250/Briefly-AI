@@ -1,31 +1,10 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
-import Navbar from "@/components/landing/navbar";
-import Hero from "@/components/landing/hero";
-import Features from "@/components/landing/features";
-import Timeline from "@/components/landing/timeline";
-import Testimonials from "@/components/landing/testimonials";
-import CTA from "@/components/landing/cta";
-import Footer from "@/components/landing/footer";
-
-// Lazy-load the interactive AI demo client component to reduce initial JS payload
-const AIDemo = dynamic(() => import("@/components/landing/ai-demo"));
+import LandingPageClient from "@/components/landing/landing-page-client";
 
 export const metadata: Metadata = {
   title: "Briefly — AI Email & Calendar Workspace",
 };
 
 export default function Page() {
-  return (
-    <div className="min-h-screen bg-[#F8F8F8] text-[#111111] font-sans antialiased overflow-x-hidden selection:bg-[#6D5EF8]/10 selection:text-[#6D5EF8] relative">
-      <Navbar />
-      <Hero />
-      <AIDemo />
-      <Features />
-      <Timeline />
-      <Testimonials />
-      <CTA />
-      <Footer />
-    </div>
-  );
+  return <LandingPageClient />;
 }

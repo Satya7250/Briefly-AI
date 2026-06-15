@@ -1,21 +1,21 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { 
-  PlayIcon, 
-  CheckCircle2Icon, 
-  SparklesIcon 
+import {
+  PlayIcon,
+  CheckCircle2Icon,
+  SparklesIcon
 } from "lucide-react"
 
 export default function Hero() {
   return (
-    <section className="relative min-h-[90vh] pt-36 pb-16 flex items-center justify-center px-6 overflow-hidden z-10">
-      
+    <section className="relative min-h-[calc(100vh-64px)] pt-36 pb-16 flex items-center justify-center px-6 overflow-hidden z-10">
+
       {/* BACKGROUND DESIGN SYSTEM - Moved to Hero to keep background contained */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+
         {/* Subtle Technical Grid Background */}
-        <div 
-          className="absolute inset-0" 
+        <div
+          className="absolute inset-0"
           style={{
             backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(109,94,248,0.06) 1.5px, transparent 0)',
             backgroundSize: '16px 16px',
@@ -65,7 +65,7 @@ export default function Hero() {
       </div>
 
       <div className="max-w-[1200px] w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center relative z-10">
-        
+
         {/* Hero Content Left */}
         <div className="lg:col-span-5 space-y-7 flex flex-col text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-black/[0.08] bg-white select-none w-fit shadow-xs">
@@ -89,13 +89,13 @@ export default function Hero() {
 
           {/* CTAs */}
           <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Link 
+            <Link
               href="/sign-up"
               className="h-11 inline-flex items-center justify-center px-6 rounded-xl text-sm font-semibold bg-[#6D5EF8] text-white hover:bg-[#5b4fe0] transition-all shadow-[0_4px_16px_rgba(109,94,248,0.25)] hover:shadow-[0_4px_22px_rgba(109,94,248,0.4)] active:scale-98 cursor-pointer"
             >
               Get Started Free
             </Link>
-            <a 
+            <a
               href="#demo"
               className="h-11 inline-flex items-center justify-center px-5 rounded-xl text-sm font-semibold border border-black/[0.08] bg-white hover:bg-neutral-50 text-neutral-700 transition-all cursor-pointer group shadow-xs"
             >
@@ -131,7 +131,7 @@ export default function Hero() {
         <div className="lg:col-span-7 relative animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
           {/* Glow backing */}
           <div className="absolute -inset-4 rounded-[2rem] bg-[#6D5EF8]/5 blur-[30px] opacity-70 pointer-events-none" />
-          
+
           {/* Floating Container mockup via CSS keyframe float */}
           <div className="relative rounded-2xl border border-black/[0.08] bg-white p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] w-full overflow-hidden animate-hero-float">
             {/* Window Bar Header simulation */}

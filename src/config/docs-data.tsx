@@ -1,12 +1,4 @@
-import React from 'react';
-import {
-  LayoutDashboardIcon,
-  FileTextIcon,
-  CalendarIcon,
-  SparklesIcon,
-  DatabaseIcon,
-  Settings2Icon,
-} from 'lucide-react';
+import { LayoutDashboardIcon, FileTextIcon, CalendarIcon, SparklesIcon, DatabaseIcon, Settings2Icon } from 'lucide-react';
 
 export interface ChecklistItem {
   id: string;
