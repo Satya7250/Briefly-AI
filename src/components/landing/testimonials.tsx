@@ -1,6 +1,5 @@
 import CountUpNumber from "./count-up"
 
-// Styled SVG Icons for Integrations
 function GmailIconSvg({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -47,54 +46,54 @@ export default function Testimonials() {
   return (
     <>
       {/* Social Proof & Integration Logos */}
-      <section className="py-20 border-b border-black/[0.06] relative bg-white z-10">
+      <section className="py-20 border-b-2 border-dashed border-[#2B2B2B]/20 relative bg-[#FBF2DE] z-10">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            
+
             {/* Left Side: Counter Metrics */}
             <div className="lg:col-span-5 grid grid-cols-3 gap-6 text-left">
               <div className="space-y-1">
-                <div className="text-3xl font-extrabold text-[#6D5EF8] tracking-tight">
+                <div className="font-hand text-3xl font-bold text-[#8C7CF0] tracking-tight">
                   <CountUpNumber value={10000} suffix="+" />
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Emails Parsed</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#2B2B2B]/40">Emails Parsed</p>
               </div>
 
               <div className="space-y-1">
-                <div className="text-3xl font-extrabold text-blue-500 tracking-tight">
+                <div className="font-hand text-3xl font-bold text-[#6FA8D8] tracking-tight">
                   <CountUpNumber value={500} suffix="+" />
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Hours Saved</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#2B2B2B]/40">Hours Saved</p>
               </div>
 
               <div className="space-y-1">
-                <div className="text-3xl font-extrabold text-emerald-500 tracking-tight">
+                <div className="font-hand text-3xl font-bold text-[#7FB88B] tracking-tight">
                   <CountUpNumber value={99} suffix="%" />
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Review Speed</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#2B2B2B]/40">Review Speed</p>
               </div>
             </div>
 
-            {/* Right Side: High-end Monochrome Integration Logos */}
+            {/* Right Side: Integration Logos */}
             <div className="lg:col-span-7 flex flex-wrap items-center justify-start lg:justify-end gap-10 lg:gap-12 select-none">
-              <div className="flex items-center gap-2.5 text-neutral-400 hover:text-red-500 transition-colors duration-300 cursor-pointer">
+              <div className="flex items-center gap-2.5 text-[#2B2B2B]/50 hover:text-[#C9536B] transition-colors duration-300 cursor-pointer">
                 <GmailIconSvg className="size-7" />
-                <span className="text-sm font-semibold tracking-tight">Gmail</span>
-              </div>
-              
-              <div className="flex items-center gap-2.5 text-neutral-400 hover:text-blue-500 transition-colors duration-300 cursor-pointer">
-                <GoogleCalendarIconSvg className="size-7" />
-                <span className="text-sm font-semibold tracking-tight">Calendar</span>
-              </div>
-              
-              <div className="flex items-center gap-2.5 text-neutral-400 hover:text-[#10a37f] transition-colors duration-300 cursor-pointer">
-                <OpenAIIconSvg className="size-7" />
-                <span className="text-sm font-semibold tracking-tight">OpenAI</span>
+                <span className="font-hand text-base font-semibold tracking-tight">Gmail</span>
               </div>
 
-              <div className="flex items-center gap-2.5 text-neutral-400 hover:text-[#FF3800] transition-colors duration-300 cursor-pointer">
+              <div className="flex items-center gap-2.5 text-[#2B2B2B]/50 hover:text-[#3E7CA6] transition-colors duration-300 cursor-pointer">
+                <GoogleCalendarIconSvg className="size-7" />
+                <span className="font-hand text-base font-semibold tracking-tight">Calendar</span>
+              </div>
+
+              <div className="flex items-center gap-2.5 text-[#2B2B2B]/50 hover:text-[#10a37f] transition-colors duration-300 cursor-pointer">
+                <OpenAIIconSvg className="size-7" />
+                <span className="font-hand text-base font-semibold tracking-tight">OpenAI</span>
+              </div>
+
+              <div className="flex items-center gap-2.5 text-[#2B2B2B]/50 hover:text-[#E2725B] transition-colors duration-300 cursor-pointer">
                 <CorsairIconSvg className="size-7" />
-                <span className="text-sm font-semibold tracking-tight">Corsair</span>
+                <span className="font-hand text-base font-semibold tracking-tight">Corsair</span>
               </div>
             </div>
 
@@ -102,60 +101,63 @@ export default function Testimonials() {
         </div>
       </section>
 
-      {/* Testimonials Section: Premium Editorial Cards */}
-      <section className="py-28 relative overflow-hidden z-10 bg-white/30">
+      {/* Testimonials Section: Sketchbook Cards */}
+      <section className="py-28 relative overflow-hidden z-10 bg-[#FBF2DE]/60">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center space-y-4 mb-20 select-none">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900">Used by Product Leaders</h2>
-            <p className="text-neutral-500 text-sm sm:text-base">See how Briefly AI empowers executive operations.</p>
+            <h2 className="font-hand text-4xl sm:text-5xl font-bold tracking-tight text-[#2B2B2B]">Used by Product Leaders</h2>
+            <p className="text-[#2B2B2B]/60 text-base">See how Briefly AI empowers executive operations.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+
             {/* Testimonial 1 */}
-            <div className="rounded-2xl border border-black/[0.08] bg-white p-8 text-left shadow-xs flex flex-col justify-between min-h-[260px] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:border-black/[0.12] hover:-translate-y-1">
-              <p className="text-base leading-relaxed text-neutral-800 font-medium italic">
-                "Briefly has completely changed how I start my day. I review my briefings in 2 minutes instead of digging through 50 emails."
+            <div className="rounded-2xl border-2 border-[#2B2B2B] bg-[#FFF8E7] p-8 text-left shadow-[4px_4px_0_0_rgba(43,43,43,0.85)] flex flex-col justify-between min-h-[260px] transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_8px_0_0_rgba(43,43,43,0.85)] -rotate-[0.3deg]">
+              <span className="font-hand text-3xl text-[#2B2B2B]/20 leading-none">"</span>
+              <p className="text-base leading-relaxed text-[#2B2B2B]/80 font-medium">
+                Briefly has completely changed how I start my day. I review my briefings in 2 minutes instead of digging through 50 emails.
               </p>
-              <div className="mt-8 flex items-center gap-3.5 border-t border-black/[0.04] pt-4 select-none">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#6D5EF8] to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-xs">
+              <div className="mt-8 flex items-center gap-3.5 border-t-2 border-dashed border-[#2B2B2B]/15 pt-4 select-none">
+                <div className="w-9 h-9 rounded-full border-2 border-[#2B2B2B] bg-[#8C7CF0] flex items-center justify-center text-xs font-bold text-[#2B2B2B]">
                   SK
                 </div>
                 <div>
-                  <span className="font-bold text-xs text-neutral-900 block">Sarah K.</span>
-                  <span className="text-[10px] font-bold text-neutral-400 block uppercase">VP of Product</span>
+                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Sarah K.</span>
+                  <span className="text-[10px] font-bold text-[#2B2B2B]/40 block uppercase">VP of Product</span>
                 </div>
               </div>
             </div>
 
             {/* Testimonial 2 */}
-            <div className="rounded-2xl border border-black/[0.08] bg-white p-8 text-left shadow-xs flex flex-col justify-between min-h-[260px] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:border-black/[0.12] hover:-translate-y-1">
-              <p className="text-base leading-relaxed text-neutral-800 font-medium italic">
-                "The proactive next actions are game-changing. It drafted a response to a critical client email before I even opened Outlook."
+            <div className="rounded-2xl border-2 border-[#2B2B2B] bg-[#FFF8E7] p-8 text-left shadow-[4px_4px_0_0_rgba(43,43,43,0.85)] flex flex-col justify-between min-h-[260px] transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_8px_0_0_rgba(43,43,43,0.85)] rotate-[0.3deg]">
+              <span className="font-hand text-3xl text-[#2B2B2B]/20 leading-none">"</span>
+              <p className="text-base leading-relaxed text-[#2B2B2B]/80 font-medium">
+                The proactive next actions are game-changing. It drafted a response to a critical client email before I even opened Outlook.
               </p>
-              <div className="mt-8 flex items-center gap-3.5 border-t border-black/[0.04] pt-4 select-none">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-xs">
+              <div className="mt-8 flex items-center gap-3.5 border-t-2 border-dashed border-[#2B2B2B]/15 pt-4 select-none">
+                <div className="w-9 h-9 rounded-full border-2 border-[#2B2B2B] bg-[#6FA8D8] flex items-center justify-center text-xs font-bold text-[#2B2B2B]">
                   DM
                 </div>
                 <div>
-                  <span className="font-bold text-xs text-neutral-900 block">David M.</span>
-                  <span className="text-[10px] font-bold text-neutral-400 block uppercase">SaaS Founder</span>
+                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">David M.</span>
+                  <span className="text-[10px] font-bold text-[#2B2B2B]/40 block uppercase">SaaS Founder</span>
                 </div>
               </div>
             </div>
 
             {/* Testimonial 3 */}
-            <div className="rounded-2xl border border-black/[0.08] bg-white p-8 text-left shadow-xs flex flex-col justify-between min-h-[260px] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:border-black/[0.12] hover:-translate-y-1">
-              <p className="text-base leading-relaxed text-neutral-800 font-medium italic">
-                "An absolute must-have for executives. The calendar prep notes save me hours of meeting prep every single week."
+            <div className="rounded-2xl border-2 border-[#2B2B2B] bg-[#FFF8E7] p-8 text-left shadow-[4px_4px_0_0_rgba(43,43,43,0.85)] flex flex-col justify-between min-h-[260px] transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_8px_0_0_rgba(43,43,43,0.85)] -rotate-[0.3deg]">
+              <span className="font-hand text-3xl text-[#2B2B2B]/20 leading-none">"</span>
+              <p className="text-base leading-relaxed text-[#2B2B2B]/80 font-medium">
+                An absolute must-have for executives. The calendar prep notes save me hours of meeting prep every single week.
               </p>
-              <div className="mt-8 flex items-center gap-3.5 border-t border-black/[0.04] pt-4 select-none">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#6D5EF8] to-pink-500 flex items-center justify-center text-xs font-bold text-white shadow-xs">
+              <div className="mt-8 flex items-center gap-3.5 border-t-2 border-dashed border-[#2B2B2B]/15 pt-4 select-none">
+                <div className="w-9 h-9 rounded-full border-2 border-[#2B2B2B] bg-[#E2725B] flex items-center justify-center text-xs font-bold text-[#2B2B2B]">
                   ER
                 </div>
                 <div>
-                  <span className="font-bold text-xs text-neutral-900 block">Elena R.</span>
-                  <span className="text-[10px] font-bold text-neutral-400 block uppercase">Chief of Staff</span>
+                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Elena R.</span>
+                  <span className="text-[10px] font-bold text-[#2B2B2B]/40 block uppercase">Chief of Staff</span>
                 </div>
               </div>
             </div>

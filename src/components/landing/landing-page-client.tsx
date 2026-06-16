@@ -14,7 +14,7 @@ const AIDemo = dynamic(() => import("@/components/landing/ai-demo"));
 
 export default function LandingPageClient() {
   return (
-    <div className="min-h-screen bg-[#F8F8F8] text-[#111111] font-sans antialiased overflow-x-hidden selection:bg-[#6D5EF8]/10 selection:text-[#6D5EF8] relative">
+    <div className="min-h-screen bg-[#FBF2DE] text-[#2B2B2B] font-body antialiased overflow-x-hidden selection:bg-[#F2B33D]/30 selection:text-[#2B2B2B] relative">
       <Navbar />
       <Hero />
       <AIDemo />

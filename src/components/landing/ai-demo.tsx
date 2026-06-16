@@ -27,73 +27,86 @@ export default function AIDemo() {
   const [activeStep, setActiveStep] = useState(0)
   const [displayedText, setDisplayedText] = useState("")
 
-  // Activity feed animation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveStep((prev) => {
-        if (prev >= activitySteps.length - 1) return prev
-        return prev + 1
-      })
-    }, 900)
+    let stepTimer: NodeJS.Timeout
+    let textTimer: NodeJS.Timeout
+    let loopTimeout: NodeJS.Timeout
 
-    return () => clearInterval(interval)
-  }, [])
+    const runAnimation = () => {
+      setActiveStep(0)
+      setDisplayedText("")
 
-  // Streaming text animation
-  useEffect(() => {
-    let index = 0
+      let currentStep = 0
+      stepTimer = setInterval(() => {
+        if (currentStep < activitySteps.length - 1) {
+          currentStep++
+          setActiveStep(currentStep)
+        } else {
+          clearInterval(stepTimer)
+        }
+      }, 900)
 
-    const timer = setInterval(() => {
-      if (index >= briefingText.length) {
-        clearInterval(timer)
-        return
-      }
+      let charIndex = 0
+      textTimer = setInterval(() => {
+        if (charIndex >= briefingText.length) {
+          clearInterval(textTimer)
+          loopTimeout = setTimeout(() => {
+            runAnimation()
+          }, 5000) // Pause for 5 seconds at the end before looping
+          return
+        }
+        setDisplayedText(briefingText.slice(0, charIndex + 1))
+        charIndex++
+      }, 18)
+    }
 
-      setDisplayedText(briefingText.slice(0, index + 1))
-      index++
-    }, 18)
+    runAnimation()
 
-    return () => clearInterval(timer)
+    return () => {
+      clearInterval(stepTimer)
+      clearInterval(textTimer)
+      clearTimeout(loopTimeout)
+    }
   }, [])
 
   return (
     <section
       id="demo"
-      className="relative py-24 bg-white border-y border-black/[0.06]"
+      className="relative py-24 bg-[#FBF2DE] border-y-2 border-dashed border-[#2B2B2B]/20"
     >
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-14">
-          <h2 className="text-4xl font-bold tracking-tight text-neutral-900">
+          <h2 className="font-hand text-4xl font-bold tracking-tight text-[#2B2B2B]">
             Live AI Execution
           </h2>
 
-          <p className="mt-4 text-neutral-500 max-w-xl mx-auto">
+          <p className="mt-4 text-[#2B2B2B]/60 max-w-xl mx-auto">
             Watch Briefly AI analyze your inbox, calendar, and tasks while
             generating a personalized daily briefing in real time.
           </p>
         </div>
 
         {/* Main Card */}
-        <div className="overflow-hidden rounded-3xl border border-black/[0.06] bg-white shadow-[0_20px_60px_rgba(0,0,0,.06)]">
+        <div className="overflow-hidden rounded-3xl border-2 border-[#2B2B2B] bg-[#FFF8E7] shadow-[6px_6px_0_0_rgba(43,43,43,0.9)]">
           {/* Top Bar */}
-          <div className="flex items-center justify-between border-b border-black/[0.05] bg-neutral-50 px-6 py-4">
+          <div className="flex items-center justify-between border-b-2 border-dashed border-[#2B2B2B]/20 bg-[#FBF2DE] px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-red-400" />
-                <span className="h-3 w-3 rounded-full bg-yellow-400" />
-                <span className="h-3 w-3 rounded-full bg-green-400" />
+                <span className="h-3 w-3 rounded-full border border-[#2B2B2B]/40 bg-[#E2725B]" />
+                <span className="h-3 w-3 rounded-full border border-[#2B2B2B]/40 bg-[#F2B33D]" />
+                <span className="h-3 w-3 rounded-full border border-[#2B2B2B]/40 bg-[#7FB88B]" />
               </div>
 
-              <span className="font-mono text-xs text-neutral-400">
+              <span className="font-hand text-sm text-[#2B2B2B]/50">
                 briefly-ai-agent.ts
               </span>
             </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1.5">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="flex items-center gap-2 rounded-full border-2 border-[#2B2B2B] bg-[#E3F0E5] px-3 py-1.5">
+              <div className="h-2 w-2 rounded-full bg-[#7FB88B]" />
 
-              <span className="text-xs font-medium text-green-700">
+              <span className="font-hand text-xs font-bold text-[#3F7A4D]">
                 AI Active
               </span>
             </div>
@@ -102,18 +115,18 @@ export default function AIDemo() {
           {/* Content */}
           <div className="grid lg:grid-cols-[320px_1fr]">
             {/* LEFT PANEL */}
-            <div className="border-r border-black/[0.05] bg-neutral-50/50 p-6">
+            <div className="border-r-2 border-dashed border-[#2B2B2B]/20 bg-[#FBF2DE]/60 p-6">
               <div className="flex items-center gap-3 mb-8">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6D5EF8]/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[#2B2B2B] bg-[#F6D2DE]">
                   <span className="text-lg">🧠</span>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-neutral-900">
+                  <h3 className="font-hand font-bold text-[#2B2B2B]">
                     AI Activity
                   </h3>
 
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-[#2B2B2B]/50">
                     Live execution feed
                   </p>
                 </div>
@@ -128,27 +141,27 @@ export default function AIDemo() {
                     <div
                       key={step}
                       className={`flex items-center gap-3 transition-all duration-500 ${index <= activeStep
-                          ? "opacity-100"
-                          : "opacity-40"
+                        ? "opacity-100"
+                        : "opacity-40"
                         }`}
                     >
                       <div
-                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-all duration-300 ${completed
-                            ? "bg-green-100 text-green-600"
-                            : active
-                              ? "bg-[#6D5EF8]/10 text-[#6D5EF8]"
-                              : "bg-neutral-200 text-neutral-500"
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#2B2B2B] text-xs font-bold transition-all duration-300 ${completed
+                          ? "bg-[#7FB88B] text-[#1E3B25]"
+                          : active
+                            ? "bg-[#F2B33D] text-[#2B2B2B]"
+                            : "bg-[#FFF8E7] text-[#2B2B2B]/50"
                           }`}
                       >
                         {completed ? "✓" : index + 1}
                       </div>
 
-                      <span className="text-sm text-neutral-700">
+                      <span className="text-sm text-[#2B2B2B]/80">
                         {step}
                       </span>
 
                       {active && (
-                        <div className="h-4 w-1 rounded-full bg-[#6D5EF8] animate-pulse" />
+                        <div className="h-4 w-1 rounded-full bg-[#F2B33D] animate-pulse" />
                       )}
                     </div>
                   )
@@ -156,27 +169,27 @@ export default function AIDemo() {
               </div>
 
               {/* Stats */}
-              <div className="mt-10 rounded-2xl border border-black/[0.05] bg-white p-4">
+              <div className="mt-10 rounded-2xl border-2 border-[#2B2B2B] bg-[#FFF8E7] p-4 shadow-[2px_2px_0_0_rgba(43,43,43,0.5)]">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs text-neutral-400">
+                    <p className="text-xs text-[#2B2B2B]/50">
                       Emails Processed
                     </p>
-                    <p className="text-xl font-semibold">247</p>
+                    <p className="font-hand text-xl font-bold text-[#2B2B2B]">247</p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-neutral-400">
+                    <p className="text-xs text-[#2B2B2B]/50">
                       Meetings Today
                     </p>
-                    <p className="text-xl font-semibold">2</p>
+                    <p className="font-hand text-xl font-bold text-[#2B2B2B]">2</p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-neutral-400">
+                    <p className="text-xs text-[#2B2B2B]/50">
                       Priority Items
                     </p>
-                    <p className="text-xl font-semibold text-red-500">
+                    <p className="font-hand text-xl font-bold text-[#C9536B]">
                       3
                     </p>
                   </div>
@@ -187,27 +200,31 @@ export default function AIDemo() {
             {/* RIGHT PANEL */}
             <div className="p-8">
               <div className="flex items-center gap-3 mb-8">
-                <div className="h-10 w-10 rounded-xl bg-[#6D5EF8] text-white flex items-center justify-center">
+                <div className="h-10 w-10 rounded-xl border-2 border-[#2B2B2B] bg-[#F2B33D] text-[#2B2B2B] flex items-center justify-center">
                   ✨
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-neutral-900">
+                  <h3 className="font-hand font-bold text-[#2B2B2B]">
                     AI Briefing
                   </h3>
 
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-[#2B2B2B]/50">
                     Generated in real time
                   </p>
                 </div>
               </div>
 
               {/* Streaming Output */}
-              <div className="rounded-2xl border border-black/[0.06] bg-neutral-50 p-6 min-h-[350px]">
-                <div className="font-mono text-[15px] leading-8 text-neutral-700 whitespace-pre-wrap">
+              <div className="rounded-2xl border-2 border-[#2B2B2B] bg-[#FBF2DE] p-6 min-h-[350px] shadow-[2px_2px_0_0_rgba(43,43,43,0.3)] relative">
+                {/* Invisible placeholder of the full text to reserve layout height and prevent page shrinkage */}
+                <div className="font-mono text-[15px] leading-8 text-[#2B2B2B]/80 whitespace-pre-wrap invisible">
+                  {briefingText}
+                </div>
+                {/* Floating overlay container containing the actual animated typewriter output */}
+                <div className="font-mono text-[15px] leading-8 text-[#2B2B2B]/80 whitespace-pre-wrap absolute top-6 left-6 right-6 bottom-6 overflow-y-auto no-scrollbar">
                   {displayedText}
-
-                  <span className="ml-1 inline-block animate-pulse text-[#6D5EF8]">
+                  <span className="ml-1 inline-block animate-pulse text-[#F2B33D]">
                     ▋
                   </span>
                 </div>
@@ -215,32 +232,32 @@ export default function AIDemo() {
 
               {/* Bottom Summary */}
               <div className="grid md:grid-cols-3 gap-4 mt-6">
-                <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-                  <div className="text-xs font-medium text-red-500 mb-1">
+                <div className="rounded-xl border-2 border-[#2B2B2B] bg-[#F6D2DE]/40 p-4 shadow-[2px_2px_0_0_rgba(43,43,43,0.4)]">
+                  <div className="text-xs font-bold text-[#C9536B] mb-1">
                     Priority Emails
                   </div>
 
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="font-hand text-2xl font-bold text-[#C9536B]">
                     3
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-                  <div className="text-xs font-medium text-blue-500 mb-1">
+                <div className="rounded-xl border-2 border-[#2B2B2B] bg-[#CFE3F2]/60 p-4 shadow-[2px_2px_0_0_rgba(43,43,43,0.4)]">
+                  <div className="text-xs font-bold text-[#3E7CA6] mb-1">
                     Meetings
                   </div>
 
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="font-hand text-2xl font-bold text-[#3E7CA6]">
                     2
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#6D5EF8]/20 bg-[#6D5EF8]/5 p-4">
-                  <div className="text-xs font-medium text-[#6D5EF8] mb-1">
+                <div className="rounded-xl border-2 border-[#2B2B2B] bg-[#F2B33D]/15 p-4 shadow-[2px_2px_0_0_rgba(43,43,43,0.4)]">
+                  <div className="text-xs font-bold text-[#F2B33D] mb-1">
                     Focus Score
                   </div>
 
-                  <div className="text-2xl font-bold text-[#6D5EF8]">
+                  <div className="font-hand text-2xl font-bold text-[#F2B33D]">
                     92%
                   </div>
                 </div>

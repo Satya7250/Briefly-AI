@@ -32,7 +32,7 @@ export function apiHandler<
         error: {
           code: normalized.code,
           message: normalized.message,
-          ...(normalized.details && { details: normalized.details }),
+          ...(normalized.details ? { details: normalized.details } : {}),
         },
       } as const;
       logger.error('API error', { path: (request as any).url, error: normalized });
