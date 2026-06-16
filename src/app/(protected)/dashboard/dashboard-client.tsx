@@ -42,6 +42,8 @@ interface CalendarEvent {
 }
 
 export default function DashboardClient() {
+  // To prevent Next.js SSR hydration mismatches, start with default empty states on server and initial client render.
+  // We will load the cached data from sessionStorage synchronously in useEffect on mount.
   const [emails, setEmails] = useState<InboxMessage[]>([])
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -63,7 +65,11 @@ export default function DashboardClient() {
 
   const fetchMessages = async () => {
     try {
-      setLoading(true)
+      // Determine if cache exists to avoid showing loading indicator during background refresh
+      const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("dashboard-emails-v1")
+      if (!hasCache) {
+        setLoading(true)
+      }
       setError(null)
       
       const [messagesRes, eventsRes] = await Promise.all([
@@ -74,22 +80,52 @@ export default function DashboardClient() {
       if (!messagesRes.ok) throw new Error("Failed to fetch messages")
       const messagesResult = await messagesRes.json()
       if (!messagesResult.success) throw new Error(messagesResult.error || "Failed to fetch messages")
+      
       setEmails(messagesResult.data)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("dashboard-emails-v1", JSON.stringify(messagesResult.data))
+      }
 
       if (eventsRes.ok) {
         const eventsResult = await eventsRes.json()
         if (eventsResult.success) {
           setEvents(eventsResult.data)
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("dashboard-events-v1", JSON.stringify(eventsResult.data))
+          }
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("dashboard-emails-v1")
+      if (!hasCache) {
+        setError(err instanceof Error ? err.message : "An error occurred")
+      } else {
+        console.error("Failed to silently refresh dashboard in background:", err)
+      }
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    // Load from sessionStorage instantly on client mount to bypass initial page loader
+    const cachedEmails = sessionStorage.getItem("dashboard-emails-v1")
+    const cachedEvents = sessionStorage.getItem("dashboard-events-v1")
+    if (cachedEmails) {
+      try {
+        setEmails(JSON.parse(cachedEmails))
+        setLoading(false)
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+    if (cachedEvents) {
+      try {
+        setEvents(JSON.parse(cachedEvents))
+      } catch (e) {
+        // ignore parse error
+      }
+    }
     fetchMessages()
     // Prewarm briefing cache in the background
     fetch("/api/ai/briefing/prewarm", { method: "POST" }).catch((err) =>

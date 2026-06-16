@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { EmailList, InboxMessage as ListInboxMessage } from "@/components/inbox/email-list"
 import { ThreadViewer } from "@/components/inbox/thread-viewer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +20,8 @@ interface FullMessage {
 }
 
 export default function InboxClient() {
+  // To prevent Next.js SSR hydration mismatches, start with default empty states on server and initial client render.
+  // We will load the cached data from sessionStorage synchronously in useEffect on mount.
   const [emails, setEmails] = useState<ListInboxMessage[]>([])
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
   const [selectedMessage, setSelectedMessage] = useState<FullMessage | null>(null)
@@ -31,9 +33,20 @@ export default function InboxClient() {
   const [unreadUpdated, setUnreadUpdated] = useState(0)
   const { setCount: setUnreadCount } = useUnreadCount()
 
+  // Ref to protect against React state race conditions when quickly switching selected threads
+  const latestSelectedIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    latestSelectedIdRef.current = selectedMessageId
+  }, [selectedMessageId])
+
   const fetchMessages = async () => {
     try {
-      setListLoading(true)
+      // Determine if cache exists to avoid showing loading skeletons during background refresh
+      const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("inbox-cache-v1")
+      if (!hasCache) {
+        setListLoading(true)
+      }
       setListError(null)
       
       const res = await fetch("/api/mail/messages")
@@ -43,17 +56,49 @@ export default function InboxClient() {
       if (!result.success) throw new Error(result.error || "Failed to fetch messages")
 
       setEmails(result.data)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("inbox-cache-v1", JSON.stringify(result.data))
+      }
     } catch (err) {
-      setListError(err instanceof Error ? err.message : "An error occurred")
+      const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("inbox-cache-v1")
+      if (!hasCache) {
+        setListError(err instanceof Error ? err.message : "An error occurred")
+      } else {
+        console.error("Failed to silently refresh inbox in background:", err)
+      }
     } finally {
       setListLoading(false)
     }
   }
 
-  const fetchMessage = async (id: string) => {
+  const fetchMessage = useCallback(async (id: string) => {
+    const threadCacheKey = `thread-cache-v1:${id}`
+    let hasCache = false
+
+    // Try to load and show thread from cache instantly
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem(threadCacheKey)
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached)
+          if (latestSelectedIdRef.current === id) {
+            setSelectedMessage(parsed)
+          }
+          hasCache = true
+        } catch (e) {
+          // ignore parse error
+        }
+      }
+    }
+
     try {
-      setMessageLoading(true)
-      setMessageError(null)
+      // Avoid flash of loader if we already rendered the thread from cache
+      if (!hasCache && latestSelectedIdRef.current === id) {
+        setMessageLoading(true)
+      }
+      if (latestSelectedIdRef.current === id) {
+        setMessageError(null)
+      }
       
       const res = await fetch(`/api/mail/messages/${id}`)
       if (!res.ok) throw new Error("Failed to fetch message")
@@ -61,13 +106,27 @@ export default function InboxClient() {
       const result = await res.json()
       if (!result.success) throw new Error(result.error || "Failed to fetch message")
 
-      setSelectedMessage(result.data)
+      // Only update state if user hasn't switched away from this message
+      if (latestSelectedIdRef.current === id) {
+        setSelectedMessage(result.data)
+      }
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(threadCacheKey, JSON.stringify(result.data))
+      }
     } catch (err) {
-      setMessageError(err instanceof Error ? err.message : "An error occurred")
+      if (latestSelectedIdRef.current === id) {
+        if (!hasCache) {
+          setMessageError(err instanceof Error ? err.message : "An error occurred")
+        } else {
+          console.error("Failed to silently refresh thread details:", err)
+        }
+      }
     } finally {
-      setMessageLoading(false)
+      if (latestSelectedIdRef.current === id) {
+        setMessageLoading(false)
+      }
     }
-  }
+  }, [])
 
   const handleSnooze = useCallback(() => {
     setSnoozeUpdated(prev => prev + 1)
@@ -80,6 +139,16 @@ export default function InboxClient() {
   }, [setUnreadCount])
 
   useEffect(() => {
+    // Load from sessionStorage instantly on client mount to bypass initial loading skeletons
+    const cached = sessionStorage.getItem("inbox-cache-v1")
+    if (cached) {
+      try {
+        setEmails(JSON.parse(cached))
+        setListLoading(false)
+      } catch (e) {
+        // ignore parse error
+      }
+    }
     fetchMessages()
   }, [])
 
@@ -105,7 +174,7 @@ export default function InboxClient() {
       e.preventDefault()
       setSelectedMessage(null)
     }
-  }, [selectedMessageId, emails])
+  }, [selectedMessageId, emails, fetchMessage])
 
   useEffect(() => {
     if (selectedMessageId) {
@@ -114,7 +183,7 @@ export default function InboxClient() {
     } else {
       setSelectedMessage(null)
     }
-  }, [selectedMessageId])
+  }, [selectedMessageId, fetchMessage])
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
