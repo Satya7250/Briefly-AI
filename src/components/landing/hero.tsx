@@ -133,7 +133,7 @@ export default function Hero() {
 
             {/* Greeting */}
             <div className="text-left mb-5">
-              <h3 className="font-hand text-xl font-bold text-[#2B2B2B] tracking-tight">Good Morning, Ansh 👋</h3>
+              <h3 className="font-hand text-xl font-bold text-[#2B2B2B] tracking-tight">Good Morning, Satya 👋</h3>
               <p className="text-sm text-[#2B2B2B]/60 mt-0.5">Briefly AI reviewed your inbox and calendar.</p>
             </div>
 
@@ -158,7 +158,7 @@ export default function Hero() {
               <span className="font-hand text-xs font-bold uppercase tracking-wide text-[#2B2B2B]/40">Recommended Next Action</span>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
                 <div>
-                  <h4 className="font-hand font-bold text-base text-[#2B2B2B]">Reply to Satya</h4>
+                  <h4 className="font-hand font-bold text-base text-[#2B2B2B]">Reply to Saurav</h4>
                   <p className="text-sm text-[#2B2B2B]/60 mt-0.5">Confirm proposal approval deadline before 11:00 AM</p>
                 </div>
                 <Badge className="bg-[#E2725B] text-[#2B2B2B] hover:bg-[#E2725B] border-2 border-[#2B2B2B] text-[10px] px-2 py-0.5 rounded font-hand font-bold uppercase shrink-0 w-fit">

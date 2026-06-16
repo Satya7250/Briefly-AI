@@ -122,7 +122,7 @@ export default function Testimonials() {
                   SK
                 </div>
                 <div>
-                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Sarah K.</span>
+                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Sakshi K.</span>
                   <span className="text-[10px] font-bold text-[#2B2B2B]/40 block uppercase">VP of Product</span>
                 </div>
               </div>
@@ -136,10 +136,10 @@ export default function Testimonials() {
               </p>
               <div className="mt-8 flex items-center gap-3.5 border-t-2 border-dashed border-[#2B2B2B]/15 pt-4 select-none">
                 <div className="w-9 h-9 rounded-full border-2 border-[#2B2B2B] bg-[#6FA8D8] flex items-center justify-center text-xs font-bold text-[#2B2B2B]">
-                  DM
+                  Rk
                 </div>
                 <div>
-                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">David M.</span>
+                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Raja k.</span>
                   <span className="text-[10px] font-bold text-[#2B2B2B]/40 block uppercase">SaaS Founder</span>
                 </div>
               </div>
@@ -153,10 +153,10 @@ export default function Testimonials() {
               </p>
               <div className="mt-8 flex items-center gap-3.5 border-t-2 border-dashed border-[#2B2B2B]/15 pt-4 select-none">
                 <div className="w-9 h-9 rounded-full border-2 border-[#2B2B2B] bg-[#E2725B] flex items-center justify-center text-xs font-bold text-[#2B2B2B]">
-                  ER
+                  RA
                 </div>
                 <div>
-                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Elena R.</span>
+                  <span className="font-hand font-bold text-sm text-[#2B2B2B] block">Raj A.</span>
                   <span className="text-[10px] font-bold text-[#2B2B2B]/40 block uppercase">Chief of Staff</span>
                 </div>
               </div>
