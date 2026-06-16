@@ -1,162 +1,251 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+
+const activitySteps = [
+  "Connecting to Gmail",
+  "Syncing calendar",
+  "Analyzing emails",
+  "Ranking priorities",
+  "Generating briefing",
+]
+
+const briefingText = `Good morning.
+
+You have 3 urgent emails requiring attention.
+
+Your first meeting begins at 10:00 AM.
+
+The highest priority item today is reviewing the Google Security permission request before your budget review meeting.
+
+Completing that task early will remove a blocker and keep the rest of your day focused.
+
+Recommended focus:
+Review permissions → Prepare budget notes → Attend 10:00 AM sync.`
 
 export default function AIDemo() {
-  const [demoStep, setDemoStep] = useState(0)
+  const [activeStep, setActiveStep] = useState(0)
+  const [displayedText, setDisplayedText] = useState("")
 
-  // Auto-advance the AI Demo Sequence
+  // Activity feed animation
   useEffect(() => {
     const interval = setInterval(() => {
-      setDemoStep((prev) => (prev + 1) % 6)
-    }, 2800)
+      setActiveStep((prev) => {
+        if (prev >= activitySteps.length - 1) return prev
+        return prev + 1
+      })
+    }, 900)
+
     return () => clearInterval(interval)
   }, [])
 
+  // Streaming text animation
+  useEffect(() => {
+    let index = 0
+
+    const timer = setInterval(() => {
+      if (index >= briefingText.length) {
+        clearInterval(timer)
+        return
+      }
+
+      setDisplayedText(briefingText.slice(0, index + 1))
+      index++
+    }, 18)
+
+    return () => clearInterval(timer)
+  }, [])
+
   return (
-    <section id="demo" className="py-24 border-y border-black/[0.06] relative bg-white/40 z-10">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="text-center space-y-3.5 mb-12 select-none">
-          <h2 className="text-3xl font-bold tracking-tight text-neutral-900">Live AI Execution</h2>
-          <p className="text-sm text-neutral-500 max-w-md mx-auto">Watch Briefly AI dynamically assemble a briefing in real time.</p>
+    <section
+      id="demo"
+      className="relative py-24 bg-white border-y border-black/[0.06]"
+    >
+      <div className="max-w-6xl mx-auto px-6">
+        {/* Header */}
+        <div className="text-center mb-14">
+          <h2 className="text-4xl font-bold tracking-tight text-neutral-900">
+            Live AI Execution
+          </h2>
+
+          <p className="mt-4 text-neutral-500 max-w-xl mx-auto">
+            Watch Briefly AI analyze your inbox, calendar, and tasks while
+            generating a personalized daily briefing in real time.
+          </p>
         </div>
 
-        <div className="rounded-2xl border border-black/[0.08] bg-white overflow-hidden shadow-sm">
-          <div className="border-b border-black/[0.04] px-5 py-3.5 flex items-center justify-between bg-neutral-50/50 select-none">
-            <div className="flex items-center gap-2 text-xs font-semibold text-neutral-500">
+        {/* Main Card */}
+        <div className="overflow-hidden rounded-3xl border border-black/[0.06] bg-white shadow-[0_20px_60px_rgba(0,0,0,.06)]">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between border-b border-black/[0.05] bg-neutral-50 px-6 py-4">
+            <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                <span className="h-3 w-3 rounded-full bg-red-400" />
+                <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                <span className="h-3 w-3 rounded-full bg-green-400" />
               </div>
-              <span className="ml-2 font-mono text-[11px] text-neutral-400">briefly-agent-stream.js</span>
+
+              <span className="font-mono text-xs text-neutral-400">
+                briefly-ai-agent.ts
+              </span>
             </div>
-            <button 
-              onClick={() => setDemoStep(0)} 
-              className="text-[11px] font-bold text-[#6D5EF8] hover:underline cursor-pointer"
-            >
-              Restart Sequence
-            </button>
+
+            <div className="flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1.5">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+
+              <span className="text-xs font-medium text-green-700">
+                AI Active
+              </span>
+            </div>
           </div>
 
-          <div className="p-6 md:p-8 space-y-6 text-left min-h-[350px] flex flex-col justify-between">
-            
-            {/* Timeline sequence */}
-            <div className="space-y-4 flex-1">
-              {demoStep >= 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 text-sm font-semibold text-[#6D5EF8]"
-                >
-                  <span>🧠</span>
-                  <span>Briefly AI is reviewing your day...</span>
-                  {demoStep === 0 && <span className="inline-block w-1.5 h-4 bg-[#6D5EF8] animate-pulse" />}
-                </motion.div>
-              )}
+          {/* Content */}
+          <div className="grid lg:grid-cols-[320px_1fr]">
+            {/* LEFT PANEL */}
+            <div className="border-r border-black/[0.05] bg-neutral-50/50 p-6">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6D5EF8]/10">
+                  <span className="text-lg">🧠</span>
+                </div>
 
-              {demoStep >= 1 && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 text-sm font-semibold text-red-500 pl-6"
-                >
-                  <span>📬</span>
-                  <span>3 priority emails detected</span>
-                  {demoStep === 1 && <span className="inline-block w-1.5 h-4 bg-red-500 animate-pulse" />}
-                </motion.div>
-              )}
+                <div>
+                  <h3 className="font-semibold text-neutral-900">
+                    AI Activity
+                  </h3>
 
-              {demoStep >= 2 && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 text-sm font-semibold text-blue-500 pl-6"
-                >
-                  <span>📅</span>
-                  <span>2 meetings scheduled</span>
-                  {demoStep === 2 && <span className="inline-block w-1.5 h-4 bg-blue-500 animate-pulse" />}
-                </motion.div>
-              )}
+                  <p className="text-xs text-neutral-500">
+                    Live execution feed
+                  </p>
+                </div>
+              </div>
 
-              {demoStep >= 3 && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 text-sm font-semibold text-amber-600 pl-6"
-                >
-                  <span>⚠️</span>
-                  <span>1 follow-up requires attention</span>
-                  {demoStep === 3 && <span className="inline-block w-1.5 h-4 bg-amber-600 animate-pulse" />}
-                </motion.div>
-              )}
+              <div className="space-y-4">
+                {activitySteps.map((step, index) => {
+                  const completed = index < activeStep
+                  const active = index === activeStep
+
+                  return (
+                    <div
+                      key={step}
+                      className={`flex items-center gap-3 transition-all duration-500 ${index <= activeStep
+                          ? "opacity-100"
+                          : "opacity-40"
+                        }`}
+                    >
+                      <div
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-all duration-300 ${completed
+                            ? "bg-green-100 text-green-600"
+                            : active
+                              ? "bg-[#6D5EF8]/10 text-[#6D5EF8]"
+                              : "bg-neutral-200 text-neutral-500"
+                          }`}
+                      >
+                        {completed ? "✓" : index + 1}
+                      </div>
+
+                      <span className="text-sm text-neutral-700">
+                        {step}
+                      </span>
+
+                      {active && (
+                        <div className="h-4 w-1 rounded-full bg-[#6D5EF8] animate-pulse" />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Stats */}
+              <div className="mt-10 rounded-2xl border border-black/[0.05] bg-white p-4">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-neutral-400">
+                      Emails Processed
+                    </p>
+                    <p className="text-xl font-semibold">247</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-neutral-400">
+                      Meetings Today
+                    </p>
+                    <p className="text-xl font-semibold">2</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-neutral-400">
+                      Priority Items
+                    </p>
+                    <p className="text-xl font-semibold text-red-500">
+                      3
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Reveal Briefing Card */}
-            <AnimatePresence mode="wait">
-              {demoStep >= 4 ? (
-                <motion.div
-                  key="revealed-briefing"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.5 }}
-                  className="rounded-xl border border-black/[0.06] bg-neutral-50/50 p-5 mt-4"
-                >
-                  {/* Briefly AI Banner Header */}
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400 border-b border-black/[0.04] pb-3 mb-4 select-none">
-                    <div className="flex items-center gap-1.5 font-bold text-neutral-700">
-                      <span>🧠</span>
-                      <span>Generated by Briefly AI</span>
-                    </div>
-                    <span className="font-semibold text-neutral-400">Generated just now</span>
+            {/* RIGHT PANEL */}
+            <div className="p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="h-10 w-10 rounded-xl bg-[#6D5EF8] text-white flex items-center justify-center">
+                  ✨
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-neutral-900">
+                    AI Briefing
+                  </h3>
+
+                  <p className="text-sm text-neutral-500">
+                    Generated in real time
+                  </p>
+                </div>
+              </div>
+
+              {/* Streaming Output */}
+              <div className="rounded-2xl border border-black/[0.06] bg-neutral-50 p-6 min-h-[350px]">
+                <div className="font-mono text-[15px] leading-8 text-neutral-700 whitespace-pre-wrap">
+                  {displayedText}
+
+                  <span className="ml-1 inline-block animate-pulse text-[#6D5EF8]">
+                    ▋
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom Summary */}
+              <div className="grid md:grid-cols-3 gap-4 mt-6">
+                <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                  <div className="text-xs font-medium text-red-500 mb-1">
+                    Priority Emails
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Priority Card */}
-                    <div className="rounded-lg border border-red-100 bg-white p-3.5">
-                      <span className="text-xs font-bold text-red-500 flex items-center gap-1.5 mb-2.5">
-                        <span>🔥</span> Priority Emails
-                      </span>
-                      <div className="space-y-2">
-                        <div className="p-2 rounded-lg bg-neutral-50 border border-black/[0.04] text-left">
-                          <span className="font-bold text-[11px] text-neutral-800 block truncate">Google Security</span>
-                          <span className="text-[10px] text-neutral-400 block truncate">Review permissions grant</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Meetings Card */}
-                    <div className="rounded-lg border border-blue-100 bg-white p-3.5">
-                      <span className="text-xs font-bold text-blue-500 flex items-center gap-1.5 mb-2.5">
-                        <span>📅</span> Meetings Today
-                      </span>
-                      <div className="space-y-2">
-                        <div className="p-2 rounded-lg bg-neutral-50 border border-black/[0.04] text-left">
-                          <span className="font-bold text-[11px] text-neutral-800 block truncate">Sync with Satya</span>
-                          <span className="text-[10px] text-neutral-400 block truncate">Review budget targets</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Suggested Focus Card */}
-                    <div className="rounded-lg border border-indigo-100 bg-white p-3.5">
-                      <span className="text-xs font-bold text-[#6D5EF8] flex items-center gap-1.5 mb-2.5">
-                        <span>🎯</span> Suggested Focus
-                      </span>
-                      <p className="text-[11px] text-neutral-500 text-left leading-normal">
-                        Focus on closing priority follow-ups before the Satya sync at 10:00 AM.
-                      </p>
-                    </div>
+                  <div className="text-2xl font-bold text-red-600">
+                    3
                   </div>
-                </motion.div>
-              ) : (
-                <div className="h-0 overflow-hidden" />
-              )}
-            </AnimatePresence>
+                </div>
 
+                <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                  <div className="text-xs font-medium text-blue-500 mb-1">
+                    Meetings
+                  </div>
+
+                  <div className="text-2xl font-bold text-blue-600">
+                    2
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[#6D5EF8]/20 bg-[#6D5EF8]/5 p-4">
+                  <div className="text-xs font-medium text-[#6D5EF8] mb-1">
+                    Focus Score
+                  </div>
+
+                  <div className="text-2xl font-bold text-[#6D5EF8]">
+                    92%
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

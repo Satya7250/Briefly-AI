@@ -334,6 +334,6 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ## 👨💻 Author
 
-**Your Name** – Founder & Lead Engineer. Passionate about building AI‑first productivity tools that empower professionals to work smarter.
+**Satya Prakash** – Founder & Lead Engineer. Passionate about building AI‑first productivity tools that empower professionals to work smarter.
 
 ---
