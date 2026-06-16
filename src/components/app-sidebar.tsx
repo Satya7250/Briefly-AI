@@ -2,7 +2,6 @@
 
 import * as React from "react"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -71,7 +70,7 @@ const data = {
       ),
     },
   ],
-  documents: [],
+
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -112,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Side-effect moved to useEffect */}
         <SidebarContent>
           <NavMain items={data.navMain} />
-          <NavDocuments items={data.documents} />
+
           <div className="mt-auto">
             <NavSecondary items={data.navSecondary} />
             <div className="p-2">
