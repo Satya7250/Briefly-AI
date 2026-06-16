@@ -18,11 +18,15 @@ export default function CalendarClient() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasCache, setHasCache] = useState(false)
   const { status: integrationStatus, loading: integrationLoading } = useIntegrationStatus()
 
   const fetchEvents = async () => {
     try {
-      setLoading(true)
+      const cacheExists = typeof window !== "undefined" && sessionStorage.getItem("calendar-events-v1") !== null
+      if (!cacheExists) {
+        setLoading(true)
+      }
       setError(null)
       
       const res = await fetch("/api/calendar/events")
@@ -32,14 +36,35 @@ export default function CalendarClient() {
       if (!result.success) throw new Error(result.error || "Failed to fetch events")
 
       setEvents(result.data)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("calendar-events-v1", JSON.stringify(result.data))
+        setHasCache(true)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      const cacheExists = typeof window !== "undefined" && sessionStorage.getItem("calendar-events-v1") !== null
+      if (!cacheExists) {
+        setError(err instanceof Error ? err.message : "An error occurred")
+      } else {
+        console.error("Failed to silently refresh calendar events in background:", err)
+      }
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem("calendar-events-v1")
+      if (cached) {
+        try {
+          setEvents(JSON.parse(cached))
+          setLoading(false)
+          setHasCache(true)
+        } catch (e) {
+          // ignore parse error
+        }
+      }
+    }
     fetchEvents()
   }, [])
 
@@ -48,16 +73,19 @@ export default function CalendarClient() {
     return new Date(dateStr).toLocaleString()
   }
 
+  const showLoader = (loading || integrationLoading) && !hasCache
+  const showConnectionPrompt = !integrationLoading && !integrationStatus?.calendarConnected
+
   return (
     <div className="space-y-4 p-6">
       <h1 className="text-2xl font-bold">Calendar</h1>
       
-      {loading || integrationLoading ? (
+      {showLoader ? (
         <div className="h-[50vh] flex flex-col items-center justify-center gap-4">
           <Logo width={64} height={64} className="animate-pulse" />
           <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading calendar events...</p>
         </div>
-      ) : !integrationStatus?.calendarConnected ? (
+      ) : showConnectionPrompt ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center text-center space-y-4 pt-8 pb-8 max-w-md mx-auto select-none">
             <div className="relative">
