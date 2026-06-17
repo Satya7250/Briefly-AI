@@ -152,6 +152,14 @@ export default function InboxClient() {
     fetchMessages()
   }, [])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchMessages()
+    }
+    window.addEventListener("refresh-inbox", handleRefresh)
+    return () => window.removeEventListener("refresh-inbox", handleRefresh)
+  }, [])
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "j") {
       e.preventDefault()

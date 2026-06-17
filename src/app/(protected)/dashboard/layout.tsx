@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { UnreadCountWrapper } from "@/components/unread-context-wrapper";
 import dynamic from "next/dynamic";
 import React from "react";
+import { ComposeDialog } from "@/components/inbox/compose-dialog";
 
 // Dynamically load the client-heavy CommandPalette to defer its library dependencies (cmdk, radix)
 const CommandPalette = dynamic(
@@ -27,6 +28,7 @@ export default function DashboardLayout({
         }
       >
         <CommandPalette />
+        <ComposeDialog />
         <AppSidebar variant="inset" />
 
         <SidebarInset>

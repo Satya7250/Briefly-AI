@@ -68,6 +68,14 @@ export default function CalendarClient() {
     fetchEvents()
   }, [])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchEvents()
+    }
+    window.addEventListener("refresh-calendar", handleRefresh)
+    return () => window.removeEventListener("refresh-calendar", handleRefresh)
+  }, [])
+
   const formatTime = (dateStr?: string) => {
     if (!dateStr) return "No time"
     return new Date(dateStr).toLocaleString()

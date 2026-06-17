@@ -3,6 +3,8 @@ import OpenAI from "openai";
 import { getTenantId } from "@/lib/auth";
 import { getInboxMessages, getUnreadEmails } from "@/features/mail/server/gmail-service";
 import { getCalendarEvents } from "@/features/calendar/server/calendar-service";
+import { CalendarRepository } from "@/features/calendar/server/calendar.repository";
+import { prepareMeetingBriefing } from "@/features/meetings/server/meeting-prep-service";
 import { getIntegrationStatus } from "@/lib/integrations";
 
 // --- Types ---
@@ -14,7 +16,10 @@ type Intent =
   | "UNREAD_EMAILS"
   | "PREPARE_MEETINGS"
   | "ACTION_ITEMS"
-  | "GENERAL_QUESTION";
+  | "GENERAL_QUESTION"
+  | "SEND_EMAIL"
+  | "CREATE_EVENT"
+  | "UPDATE_EVENT";
 
 // --- Helpers ---
 function getOpenAIClient(): OpenAI {
@@ -32,6 +37,91 @@ function getOpenAIClient(): OpenAI {
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+export function parseExplicitEmail(message: string) {
+  const toMatch = message.match(/To:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+  const subjectMatch = message.match(/Subject:\s*([^\n]+)/i);
+  const bodyMatch = message.match(/Body:\s*([\s\S]+)/i);
+
+  if (toMatch) {
+    const to = toMatch[1].trim();
+    const subject = subjectMatch ? subjectMatch[1].trim() : "";
+    const body = bodyMatch ? bodyMatch[1].trim() : "";
+    return { to, subject, body };
+  }
+  return null;
+}
+
+async function resolveEmailForName(tenantId: string, name: string): Promise<string> {
+  try {
+    const messages = await getInboxMessages(tenantId);
+    for (const msg of messages) {
+      const lowerFrom = msg.from.toLowerCase();
+      const lowerName = name.toLowerCase();
+      if (lowerFrom.includes(lowerName)) {
+        const match = msg.from.match(/<([^>]+)>/);
+        if (match && match[1]) {
+          return match[1];
+        }
+        if (msg.from.includes("@") && !msg.from.includes(" ")) {
+          return msg.from.trim();
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Resolve email error:", e);
+  }
+  return "";
+}
+
+async function findEventByQuery(tenantId: string, query: string): Promise<any | null> {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const nowPlus30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const events = await CalendarRepository.getUpcomingEvents(tenantId, thirtyDaysAgo, nowPlus30);
+    
+    const lowerQuery = query.toLowerCase();
+    
+    // 1. Time-based lookup (e.g. "4 PM" or "5 PM" meeting)
+    const timeMatch = query.match(/(\d+)\s*(pm|am)/i);
+    if (timeMatch) {
+      const hour = parseInt(timeMatch[1]);
+      const isPm = timeMatch[2].toLowerCase() === "pm";
+      const targetHour = isPm ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour);
+      
+      const todayStr = new Date().toDateString();
+      const match = events.find(e => {
+        if (!e.start) return false;
+        const startD = e.start.dateTime ? new Date(e.start.dateTime) : new Date(e.start.date);
+        return startD.toDateString() === todayStr && startD.getHours() === targetHour;
+      });
+      if (match) return match;
+    }
+
+    // 2. Keyword-based lookup (e.g. "standup" or "agenda")
+    const matchBySummary = events.find(e => e.summary?.toLowerCase().includes(lowerQuery));
+    if (matchBySummary) return matchBySummary;
+
+    // 3. Fallback to next upcoming meeting
+    const now = new Date();
+    const upcoming = events
+      .filter(e => {
+        if (!e.start) return false;
+        const startD = e.start.dateTime ? new Date(e.start.dateTime) : new Date(e.start.date);
+        return startD >= now;
+      })
+      .sort((a, b) => {
+        const ad = a.start.dateTime ? new Date(a.start.dateTime) : new Date(a.start.date);
+        const bd = b.start.dateTime ? new Date(b.start.dateTime) : new Date(b.start.date);
+        return ad.getTime() - bd.getTime();
+      });
+    
+    if (upcoming.length > 0) return upcoming[0];
+  } catch (e) {
+    console.error("Find event error:", e);
+  }
+  return null;
 }
 
 // --- Specific Actions ---
@@ -86,8 +176,15 @@ async function handleInboxSummary(tenantId: string, openai: OpenAI) {
 async function detectIntent(message: string, openai: OpenAI): Promise<Intent> {
   const prompt = `
 Classify the user's message into one category:
-EMAIL_SUMMARY, PRIORITY_BRIEFING, CALENDAR_SUMMARY, EMAIL_REPLY, UNREAD_EMAILS, PREPARE_MEETINGS, ACTION_ITEMS, GENERAL_QUESTION.
+EMAIL_SUMMARY, PRIORITY_BRIEFING, CALENDAR_SUMMARY, EMAIL_REPLY, UNREAD_EMAILS, PREPARE_MEETINGS, ACTION_ITEMS, GENERAL_QUESTION, SEND_EMAIL, CREATE_EVENT, UPDATE_EVENT.
 Respond with ONLY the category name.
+
+Examples:
+- "Send an email to Raj" -> SEND_EMAIL
+- "Reply to this thread" -> EMAIL_REPLY
+- "Schedule a meeting tomorrow at 5" -> CREATE_EVENT
+- "Move tomorrow's standup to 6" -> UPDATE_EVENT
+- "Prepare me for my 4 pm meeting" -> PREPARE_MEETINGS
 
 User: ${message}`;
   
@@ -97,7 +194,11 @@ User: ${message}`;
   });
   
   const intent = completion.choices[0].message.content?.trim().toUpperCase() as Intent;
-  const valid = ["EMAIL_SUMMARY", "PRIORITY_BRIEFING", "CALENDAR_SUMMARY", "EMAIL_REPLY", "UNREAD_EMAILS", "PREPARE_MEETINGS", "ACTION_ITEMS", "GENERAL_QUESTION"];
+  const valid = [
+    "EMAIL_SUMMARY", "PRIORITY_BRIEFING", "CALENDAR_SUMMARY", "EMAIL_REPLY", 
+    "UNREAD_EMAILS", "PREPARE_MEETINGS", "ACTION_ITEMS", "GENERAL_QUESTION",
+    "SEND_EMAIL", "CREATE_EVENT", "UPDATE_EVENT"
+  ];
   return valid.includes(intent) ? intent : "GENERAL_QUESTION";
 }
 
@@ -168,6 +269,121 @@ export async function POST(request: NextRequest) {
             for await (const chunk of completion) {
               const text = chunk.choices[0]?.delta?.content || "";
               if (text) send(text);
+            }
+          } else if (intent === "SEND_EMAIL" || intent === "EMAIL_REPLY") {
+            // Check for explicit email values
+            const explicit = parseExplicitEmail(lastMessage);
+            if (explicit) {
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (emailRegex.test(explicit.to) && explicit.subject && explicit.body) {
+                send(`I've prepared the email draft as requested:\n\n<email_draft to="${explicit.to}" subject="${explicit.subject}">\n${explicit.body}\n</email_draft>`);
+                return;
+              }
+            }
+
+            // Send Email Draft Flow (LLM Fallback)
+            const nameMatch = lastMessage.match(/to\s+([a-zA-Z0-9]+)/i);
+            const name = nameMatch ? nameMatch[1] : "";
+            const resolvedEmail = name ? await resolveEmailForName(tenantId, name) : "";
+            
+            const prompt = `
+You are Briefly AI. The user wants to draft an email.
+User request: "${lastMessage}"
+Resolved recipient email address: "${resolvedEmail}" (name resolved was: "${name}")
+
+Current Local Date/Time: ${new Date().toString()}
+
+STRICT RULES:
+1. If the user explicitly provides a recipient email address (e.g. contains @), a subject, or body in the request, you MUST use those exact values in the draft.
+2. Never replace or change user-provided email addresses, subjects, or bodies.
+3. NEVER generate placeholder emails like raj@example.com or test@example.com. If no recipient email is resolved or provided, set to="" (empty string).
+
+Construct an email draft XML block exactly in this format:
+<email_draft to="[recipient_email]" subject="[SubjectLine]">
+[Email body goes here. Write the exact content. Do not include placeholders like [Your Name], use "Briefly User" or generic sign-off if needed]
+</email_draft>
+
+First, describe what you drafted, then output the XML draft. Never auto-send emails.
+`;
+            const completion = await openai.chat.completions.create({
+              model: "openai/gpt-4o-mini",
+              messages: [{ role: "user", content: prompt }],
+              stream: true,
+            });
+            for await (const chunk of completion) {
+              const text = chunk.choices[0]?.delta?.content || "";
+              if (text) send(text);
+            }
+          } else if (intent === "CREATE_EVENT") {
+            // Calendar Event Creation Flow
+            const prompt = `
+You are Briefly AI. The user wants to schedule a meeting.
+User request: "${lastMessage}"
+
+Current Local Date/Time: ${new Date().toString()}
+
+Construct a calendar event creation XML block in this format:
+<event_draft summary="[Meeting Summary]" start="[Start ISO DateTime]" end="[End ISO DateTime]" attendees="[Comma-separated attendee emails]">
+[Meeting Description]
+</event_draft>
+
+First, explain that you've prepared the event draft, then output the XML block. Make sure to calculate the correct ISO dates/times relative to the current local date/time provided above. Never auto-schedule events.
+`;
+            const completion = await openai.chat.completions.create({
+              model: "openai/gpt-4o-mini",
+              messages: [{ role: "user", content: prompt }],
+              stream: true,
+            });
+            for await (const chunk of completion) {
+              const text = chunk.choices[0]?.delta?.content || "";
+              if (text) send(text);
+            }
+          } else if (intent === "UPDATE_EVENT") {
+            // Calendar Event Update Flow
+            // 1. Try to find the matching event
+            const event = await findEventByQuery(tenantId, lastMessage);
+            if (!event) {
+              send("I couldn't find a matching event on your calendar to reschedule.");
+            } else {
+              const prompt = `
+You are Briefly AI. The user wants to reschedule a meeting.
+User request: "${lastMessage}"
+Found event: "${event.summary || "Untitled Event"}" (ID: "${event.id}")
+Current Start: "${event.start?.dateTime || event.start?.date}"
+Current End: "${event.end?.dateTime || event.end?.date}"
+
+Current Local Date/Time: ${new Date().toString()}
+
+Construct a calendar event update XML block in this format:
+<event_update eventId="${event.id}" summary="${event.summary || "Untitled Event"}" currentStart="${event.start?.dateTime || event.start?.date}" currentEnd="${event.end?.dateTime || event.end?.date}" proposedStart="[Proposed Start ISO DateTime]" proposedEnd="[Proposed End ISO DateTime]">
+[Description of change]
+</event_update>
+
+First, show the proposed change details, then output the XML block. Calculate the proposed start/end times relative to the current local date/time provided.
+`;
+              const completion = await openai.chat.completions.create({
+                model: "openai/gpt-4o-mini",
+                messages: [{ role: "user", content: prompt }],
+                stream: true,
+              });
+              for await (const chunk of completion) {
+                const text = chunk.choices[0]?.delta?.content || "";
+                if (text) send(text);
+              }
+            }
+          } else if (intent === "PREPARE_MEETINGS") {
+            // Meeting preparation flow
+            const event = await findEventByQuery(tenantId, lastMessage);
+            if (!event) {
+              send("I couldn't find any upcoming meetings to prepare briefing notes for.");
+            } else {
+              send(`Preparing briefing notes for "${event.summary || "Untitled Event"}"...\n\n`);
+              try {
+                const briefing = await prepareMeetingBriefing(tenantId, event.id);
+                send(briefing);
+              } catch (e: any) {
+                send(`Error generating briefing: ${e.message || "Unknown error"}`);
+              }
             }
           } else {
             // General Chat fallback

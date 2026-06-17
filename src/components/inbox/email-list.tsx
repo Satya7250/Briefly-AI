@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { isSnoozed } from "@/lib/snooze"
 import { markEmailAsRead, getUnreadState } from "@/lib/unread"
 
+import { SquarePen } from "lucide-react"
+
 export interface InboxMessage {
   id: string
   threadId: string
@@ -104,7 +106,17 @@ export function EmailList({ emails, selectedEmailId, onSelect, loading, error, s
   return (
     <Card className="w-[350px] flex flex-col">
       <CardHeader>
-        <CardTitle>Inbox</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Inbox</CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-compose-email"))}
+            className="size-8 rounded-full hover:bg-muted"
+          >
+            <SquarePen className="size-4.5" />
+          </Button>
+        </div>
         <div className="flex gap-2 mt-2">
           <Button
             variant={filter === "all" ? "default" : "outline"}

@@ -37,3 +37,11 @@ export async function getCalendarEvents(
     return [];
   }
 }
+
+export async function createEvent(tenantId: string, event: any): Promise<any> {
+  return await CalendarRepository.createEvent(tenantId, event);
+}
+
+export async function updateEvent(tenantId: string, eventId: string, updates: any): Promise<any> {
+  return await CalendarRepository.updateEvent(tenantId, eventId, updates);
+}

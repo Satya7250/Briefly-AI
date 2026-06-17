@@ -8,7 +8,7 @@ import { getUnreadState } from "@/lib/unread"
 import { GreetingCard } from "@/components/dashboard/greeting-card"
 import { FocusToday } from "@/components/dashboard/focus-today"
 import { NeedsAttention } from "@/components/dashboard/needs-attention"
-import { TodaysSchedule } from "@/components/dashboard/todays-schedule"
+import { UpcomingMeetings } from "@/components/dashboard/upcoming-meetings"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { useIntegrationStatus } from "@/hooks/use-integration-status"
 import { Button } from "@/components/ui/button"
@@ -131,6 +131,18 @@ export default function DashboardClient() {
     console.log("Dashboard loaded");
   }, [])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchMessages()
+    }
+    window.addEventListener("refresh-calendar", handleRefresh)
+    window.addEventListener("refresh-inbox", handleRefresh)
+    return () => {
+      window.removeEventListener("refresh-calendar", handleRefresh)
+      window.removeEventListener("refresh-inbox", handleRefresh)
+    }
+  }, [])
+
   const emailsWithPriority = useMemo(() => {
     return emails.map((email) => {
       const isHighPriority = HIGH_PRIORITY_SENDERS.some((sender) =>
@@ -242,8 +254,8 @@ export default function DashboardClient() {
         {/* Needs Attention */}
         <NeedsAttention emails={needsAttentionEmails} />
 
-        {/* Today's Schedule */}
-        <TodaysSchedule events={todaysEvents} />
+        {/* Upcoming Meetings */}
+        <UpcomingMeetings events={todaysEvents} />
       </div>
 
       {/* Quick Actions */}

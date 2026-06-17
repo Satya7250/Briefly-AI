@@ -1,11 +1,15 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { SparklesIcon, CalendarIcon, MailIcon, ClockIcon, AlertCircleIcon, CheckSquareIcon } from "lucide-react"
+import { SparklesIcon, CalendarIcon, MailIcon, ClockIcon, AlertCircleIcon, CheckSquareIcon, Mail, Calendar, Sparkles, Loader2, Check, Send } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 interface BriefingItem {
   title: string;
@@ -138,6 +142,351 @@ function renderInlineMarkdown(text: string) {
   }
   
   return parts
+}
+
+function InteractiveEmailDraft({ to: initialTo, subject: initialSubject, body: initialBody }: { to: string, subject: string, body: string }) {
+  const [to, setTo] = useState(initialTo)
+  const [subject, setSubject] = useState(initialSubject)
+  const [body, setBody] = useState(initialBody)
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+
+  const handleSend = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      toast.error("Please enter a valid email address.")
+      return
+    }
+    if (!subject.trim()) {
+      toast.error("Subject cannot be empty.")
+      return
+    }
+    if (!body.trim()) {
+      toast.error("Body cannot be empty.")
+      return
+    }
+
+    setStatus("loading")
+    try {
+      const res = await fetch("/api/mail/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, subject, body }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to send email")
+      }
+      setStatus("success")
+      toast.success("Email sent successfully!")
+      window.dispatchEvent(new CustomEvent("refresh-inbox"))
+    } catch (e: any) {
+      setStatus("error")
+      toast.error(e.message || "Failed to send email")
+    }
+  }
+
+  if (status === "success") {
+    return (
+      <div className="border border-green-500/20 bg-green-500/5 rounded-2xl p-5 flex items-center gap-4 text-green-400 select-none animate-in fade-in duration-300 my-4">
+        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+          <Check className="size-5" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-sm">Email Sent!</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">Your email has been sent successfully via Gmail.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border border-border bg-card/65 backdrop-blur-sm rounded-2xl p-5 space-y-4 shadow-md text-foreground max-w-xl my-4">
+      <div className="flex items-center gap-2 border-b border-border pb-3 select-none">
+        <Mail className="size-4.5 text-[#8B5CF6]" />
+        <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Email Draft Preview</span>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground w-12 select-none">To:</span>
+          <Input 
+            value={to} 
+            onChange={(e) => setTo(e.target.value)} 
+            disabled={status === "loading"}
+            className="flex-1 bg-background border-border text-xs rounded-lg h-8 text-foreground"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground w-12 select-none">Subject:</span>
+          <Input 
+            value={subject} 
+            onChange={(e) => setSubject(e.target.value)} 
+            disabled={status === "loading"}
+            className="flex-1 bg-background border-border text-xs rounded-lg h-8 text-foreground"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground select-none">Body:</span>
+          <Textarea 
+            value={body} 
+            onChange={(e) => setBody(e.target.value)} 
+            disabled={status === "loading"}
+            rows={5}
+            className="bg-background border-border text-xs rounded-lg min-h-[100px] resize-y text-foreground"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-1 select-none">
+        <Button 
+          onClick={handleSend} 
+          disabled={status === "loading"}
+          className="bg-[#8B5CF6] hover:bg-[#7c4dff] text-white font-semibold text-xs h-8 rounded-lg gap-1.5 cursor-pointer"
+        >
+          {status === "loading" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Send className="size-3.5" />
+          )}
+          <span>Send Email</span>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function InteractiveEventDraft({ summary: initialSummary, description: initialDescription, start: initialStart, end: initialEnd, attendees: initialAttendees }: { summary: string, description: string, start: string, end: string, attendees: string }) {
+  const [summary, setSummary] = useState(initialSummary)
+  const [description, setDescription] = useState(initialDescription)
+  const [start, setStart] = useState(initialStart)
+  const [end, setEnd] = useState(initialEnd)
+  const [attendees, setAttendees] = useState(initialAttendees)
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+
+  const handleCreate = async () => {
+    setStatus("loading")
+    try {
+      const attendeesList = attendees.split(",")
+        .map(e => e.trim())
+        .filter(Boolean)
+        .map(e => ({ email: e }));
+
+      const res = await fetch("/api/calendar/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: {
+            summary,
+            description,
+            start: { dateTime: new Date(start).toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+            end: { dateTime: new Date(end).toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+            attendees: attendeesList
+          }
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to create event")
+      }
+      setStatus("success")
+      toast.success("Event created successfully!")
+      window.dispatchEvent(new CustomEvent("refresh-calendar"))
+    } catch (e: any) {
+      setStatus("error")
+      toast.error(e.message || "Failed to create event")
+    }
+  }
+
+  if (status === "success") {
+    return (
+      <div className="border border-green-500/20 bg-green-500/5 rounded-2xl p-5 flex items-center gap-4 text-green-400 select-none animate-in fade-in duration-300 my-4">
+        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+          <Check className="size-5" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-sm">Meeting Scheduled!</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">The event has been successfully added to your Google Calendar.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border border-border bg-card/65 backdrop-blur-sm rounded-2xl p-5 space-y-4 shadow-md text-foreground max-w-xl my-4">
+      <div className="flex items-center gap-2 border-b border-border pb-3 select-none">
+        <Calendar className="size-4.5 text-blue-500" />
+        <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Calendar Event Draft</span>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground w-18 select-none">Title:</span>
+          <Input 
+            value={summary} 
+            onChange={(e) => setSummary(e.target.value)} 
+            disabled={status === "loading"}
+            className="flex-1 bg-background border-border text-xs rounded-lg h-8 text-foreground"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground w-18 select-none">Start:</span>
+          <Input 
+            type="datetime-local"
+            value={start.slice(0, 16)} 
+            onChange={(e) => setStart(e.target.value)} 
+            disabled={status === "loading"}
+            className="flex-1 bg-background border-border text-xs rounded-lg h-8 text-foreground"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground w-18 select-none">End:</span>
+          <Input 
+            type="datetime-local"
+            value={end.slice(0, 16)} 
+            onChange={(e) => setEnd(e.target.value)} 
+            disabled={status === "loading"}
+            className="flex-1 bg-background border-border text-xs rounded-lg h-8 text-foreground"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground w-18 select-none">Attendees:</span>
+          <Input 
+            value={attendees} 
+            onChange={(e) => setAttendees(e.target.value)} 
+            disabled={status === "loading"}
+            placeholder="Separate with commas"
+            className="flex-1 bg-background border-border text-xs rounded-lg h-8 text-foreground"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground select-none">Description:</span>
+          <Textarea 
+            value={description} 
+            onChange={(e) => setDescription(e.target.value)} 
+            disabled={status === "loading"}
+            rows={3}
+            className="bg-background border-border text-xs rounded-lg min-h-[60px] resize-y text-foreground"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-1 select-none">
+        <Button 
+          onClick={handleCreate} 
+          disabled={status === "loading"}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-8 rounded-lg gap-1.5 cursor-pointer"
+        >
+          {status === "loading" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Calendar className="size-3.5" />
+          )}
+          <span>Schedule Event</span>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function InteractiveEventUpdate({ eventId, summary, currentStart, currentEnd, proposedStart, proposedEnd, description }: { eventId: string, summary: string, currentStart: string, currentEnd: string, proposedStart: string, proposedEnd: string, description: string }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+
+  const handleUpdate = async () => {
+    setStatus("loading")
+    try {
+      const res = await fetch(`/api/calendar/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: {
+            start: { dateTime: new Date(proposedStart).toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+            end: { dateTime: new Date(proposedEnd).toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+          }
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update event")
+      }
+      setStatus("success")
+      toast.success("Event updated successfully!")
+      window.dispatchEvent(new CustomEvent("refresh-calendar"))
+    } catch (e: any) {
+      setStatus("error")
+      toast.error(e.message || "Failed to update event")
+    }
+  }
+
+  const formatTime = (dateStr?: string) => {
+    if (!dateStr) return ""
+    return new Date(dateStr).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
+  }
+
+  if (status === "success") {
+    return (
+      <div className="border border-green-500/20 bg-green-500/5 rounded-2xl p-5 flex items-center gap-4 text-green-400 select-none animate-in fade-in duration-300 my-4">
+        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+          <Check className="size-5" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-sm">Event Updated!</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">The meeting start/end times have been rescheduled successfully.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border border-border bg-card/65 backdrop-blur-sm rounded-2xl p-5 space-y-4 shadow-md text-foreground max-w-xl my-4">
+      <div className="flex items-center gap-2 border-b border-border pb-3 select-none">
+        <Calendar className="size-4.5 text-amber-500" />
+        <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Proposed Event Reschedule</span>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-xs font-semibold select-none">
+          <span className="text-muted-foreground">Meeting:</span>
+          <span className="text-foreground">{summary}</span>
+        </div>
+        {description && (
+          <div className="text-xs text-muted-foreground italic bg-muted/40 p-2.5 rounded-lg border border-border">
+            "{description}"
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-4 pt-1 select-none">
+          <div className="bg-muted/30 border border-border p-3 rounded-xl flex flex-col gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Current Time</span>
+            <span className="text-xs font-medium text-foreground">{formatTime(currentStart)}</span>
+            <span className="text-[10px] text-muted-foreground">to {formatTime(currentEnd).split(", ")[1] || formatTime(currentEnd)}</span>
+          </div>
+
+          <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-xl flex flex-col gap-1 relative overflow-hidden">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Proposed Time</span>
+            <span className="text-xs font-semibold text-amber-350">{formatTime(proposedStart)}</span>
+            <span className="text-[10px] text-amber-400">to {formatTime(proposedEnd).split(", ")[1] || formatTime(proposedEnd)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-1 select-none">
+        <Button 
+          onClick={handleUpdate} 
+          disabled={status === "loading"}
+          className="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs h-8 rounded-lg gap-1.5 cursor-pointer"
+        >
+          {status === "loading" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Check className="size-3.5" />
+          )}
+          <span>Confirm Update</span>
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 export function parseBriefingContent(content: string) {
@@ -284,6 +633,60 @@ interface BriefingRendererProps {
 }
 
 export function BriefingRenderer({ content, createdAt, isStreaming }: BriefingRendererProps) {
+  // 1. Check for complete email draft block
+  if (content.includes("</email_draft>")) {
+    const to = content.match(/to="([^"]*)"/)?.[1] || "";
+    const subject = content.match(/subject="([^"]*)"/)?.[1] || "";
+    const body = content.match(/<email_draft[^>]*>([\s\S]*?)<\/email_draft>/)?.[1] || "";
+    const beforeText = content.split(/<email_draft/)[0] || "";
+    const afterText = content.split(/<\/email_draft>/)[1] || "";
+    return (
+      <div className="space-y-4">
+        {beforeText && <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{beforeText}</p>}
+        <InteractiveEmailDraft to={to} subject={subject} body={body} />
+        {afterText && <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{afterText}</p>}
+      </div>
+    );
+  }
+
+  // 2. Check for complete event draft block
+  if (content.includes("</event_draft>")) {
+    const summary = content.match(/summary="([^"]*)"/)?.[1] || "";
+    const start = content.match(/start="([^"]*)"/)?.[1] || "";
+    const end = content.match(/end="([^"]*)"/)?.[1] || "";
+    const attendees = content.match(/attendees="([^"]*)"/)?.[1] || "";
+    const description = content.match(/<event_draft[^>]*>([\s\S]*?)<\/event_draft>/)?.[1] || "";
+    const beforeText = content.split(/<event_draft/)[0] || "";
+    const afterText = content.split(/<\/event_draft>/)[1] || "";
+    return (
+      <div className="space-y-4">
+        {beforeText && <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{beforeText}</p>}
+        <InteractiveEventDraft summary={summary} description={description} start={start} end={end} attendees={attendees} />
+        {afterText && <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{afterText}</p>}
+      </div>
+    );
+  }
+
+  // 3. Check for complete event update block
+  if (content.includes("</event_update>")) {
+    const eventId = content.match(/eventId="([^"]*)"/)?.[1] || "";
+    const summary = content.match(/summary="([^"]*)"/)?.[1] || "";
+    const currentStart = content.match(/currentStart="([^"]*)"/)?.[1] || "";
+    const currentEnd = content.match(/currentEnd="([^"]*)"/)?.[1] || "";
+    const proposedStart = content.match(/proposedStart="([^"]*)"/)?.[1] || "";
+    const proposedEnd = content.match(/proposedEnd="([^"]*)"/)?.[1] || "";
+    const description = content.match(/<event_update[^>]*>([\s\S]*?)<\/event_update>/)?.[1] || "";
+    const beforeText = content.split(/<event_update/)[0] || "";
+    const afterText = content.split(/<\/event_update>/)[1] || "";
+    return (
+      <div className="space-y-4">
+        {beforeText && <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{beforeText}</p>}
+        <InteractiveEventUpdate eventId={eventId} summary={summary} currentStart={currentStart} currentEnd={currentEnd} proposedStart={proposedStart} proposedEnd={proposedEnd} description={description} />
+        {afterText && <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{afterText}</p>}
+      </div>
+    );
+  }
+
   // Memoize parsing structure
   const { mainTitle, sections } = React.useMemo(() => {
     return parseBriefingContent(content)

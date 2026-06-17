@@ -215,3 +215,12 @@ export async function getUserProfile(tenantId: string): Promise<{ email: string;
     return null;
   }
 }
+
+export async function sendEmail(
+  tenantId: string,
+  to: string,
+  subject: string,
+  body: string
+): Promise<any> {
+  return await GmailRepository.sendEmail(tenantId, to, subject, body);
+}

@@ -87,4 +87,27 @@ export class GmailRepository {
       .slice(0, limit)
       .map((msg: any) => this.normalizeMessage(msg));
   }
+
+  static async sendEmail(tenantId: string, to: string, subject: string, body: string) {
+    const tenant = corsair.withTenant(tenantId);
+    
+    const rawEmail = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/html; charset=utf-8`,
+      ``,
+      body
+    ].join("\r\n");
+
+    const encodedEmail = Buffer.from(rawEmail)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    return await tenant.gmail.api.messages.send({
+      raw: encodedEmail,
+    });
+  }
 }

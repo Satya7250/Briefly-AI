@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { Logo } from "@/components/common/logo"
+import { toast } from "sonner"
 
 export function CommandPalette() {
   const router = useRouter()
@@ -44,6 +45,32 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/briefing"))}>
             Go to Briefly
+          </CommandItem>
+        </CommandGroup>
+        <CommandGroup heading="Actions">
+          <CommandItem onSelect={() => runCommand(() => window.dispatchEvent(new CustomEvent("open-compose-email")))}>
+            Compose Email
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => window.dispatchEvent(new CustomEvent("open-compose-email")))}>
+            Send Email
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/calendar"))}>
+            Create Meeting
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/briefing"))}>
+            Prepare Meeting
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => {
+            window.dispatchEvent(new CustomEvent("refresh-inbox"));
+            toast.success("Inbox refreshed!");
+          })}>
+            Refresh Inbox
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => {
+            window.dispatchEvent(new CustomEvent("refresh-calendar"));
+            toast.success("Calendar refreshed!");
+          })}>
+            Refresh Calendar
           </CommandItem>
         </CommandGroup>
       </CommandList>
