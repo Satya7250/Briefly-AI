@@ -5,13 +5,12 @@ import { getIntegrationStatus } from "@/lib/integrations";
 
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = await getTenantId()
+    const tenantId = await getTenantId();
     
     if (!tenantId) {
-      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 })
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
     }
 
-    // Check integration connection status
     const integrationStatus = await getIntegrationStatus(tenantId);
     if (!integrationStatus.gmailConnected) {
       return NextResponse.json({
@@ -23,7 +22,6 @@ export async function GET(request: NextRequest) {
     
     const messages = await getInboxMessages(tenantId);
     
-    // Format the response as required
     const formattedMessages = messages.map(msg => ({
       id: msg.id,
       threadId: msg.threadId,

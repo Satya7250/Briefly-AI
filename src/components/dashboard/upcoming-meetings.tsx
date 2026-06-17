@@ -91,11 +91,11 @@ export function UpcomingMeetings({ events }: UpcomingMeetingsProps) {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col p-6 rounded-2xl bg-card border border-border text-foreground shadow-xl">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[700px] max-h-[85dvh] flex flex-col p-4 sm:p-6 rounded-2xl bg-card border border-border text-foreground shadow-xl overflow-hidden">
           <DialogHeader className="shrink-0">
-            <DialogTitle className="text-xl font-bold tracking-tight flex items-center gap-2 select-none text-foreground">
-              <Sparkles className="size-5 text-[#8B5CF6]" />
-              <span>Meeting Prep: {selectedEvent?.summary || "Untitled Event"}</span>
+            <DialogTitle className="text-base sm:text-xl font-bold tracking-tight flex items-center gap-2 select-none text-foreground">
+              <Sparkles className="size-4 sm:size-5 text-[#8B5CF6] shrink-0" />
+              <span className="truncate">Meeting Prep: {selectedEvent?.summary || "Untitled Event"}</span>
             </DialogTitle>
           </DialogHeader>
 
@@ -103,7 +103,7 @@ export function UpcomingMeetings({ events }: UpcomingMeetingsProps) {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 select-none">
                 <Loader2 className="size-8 text-[#8B5CF6] animate-spin" />
-                <p className="text-sm text-muted-foreground animate-pulse font-medium">Analyzing conversations and generating briefing...</p>
+                <p className="text-sm text-muted-foreground animate-pulse font-medium text-center">Analyzing conversations and generating briefing...</p>
               </div>
             ) : briefing ? (
               <div className="py-2">

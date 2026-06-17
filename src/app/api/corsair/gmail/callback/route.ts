@@ -5,6 +5,7 @@ import { db } from "@/db"
 import { user as users } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { getUserProfile } from "@/features/mail/server/gmail-service"
+import { GmailRepository } from "@/features/mail/server/gmail.repository"
 
 export async function GET(request: NextRequest) {
   console.log("\n========== [GMAIL_CALLBACK] START ==========")
@@ -78,6 +79,12 @@ export async function GET(request: NextRequest) {
 
   const destination = "/dashboard"
   console.log("[GMAIL_CALLBACK] Determined destination:", destination)
+
+  // Start automatic initial Gmail sync (fire-and-forget, don't block redirect)
+  console.log("[GMAIL_CALLBACK] Starting automatic initial Gmail sync...")
+  GmailRepository.syncRecentMessages(oauthResult.tenantId, 100).catch(err => {
+    console.error("[GMAIL_CALLBACK] Auto sync failed:", err)
+  })
 
   const response = NextResponse.redirect(
     new URL(destination, request.nextUrl.origin)

@@ -219,47 +219,73 @@ export default function InboxClient() {
   return (
     <div className="flex h-full gap-4">
       <Toaster />
-      {/* Left Panel - Email List */}
-      <EmailList
-        emails={emails}
-        selectedEmailId={selectedMessageId ?? undefined}
-        onSelect={setSelectedMessageId}
-        loading={listLoading}
-        error={listError}
-        snoozeUpdated={snoozeUpdated}
-        unreadUpdated={unreadUpdated}
-        onUnreadCountChange={handleUnreadCountChange}
-        onRetry={fetchMessages}
-      />
 
-      {/* Right Panel - Thread Viewer */}
-      {messageLoading ? (
-        <Card className="flex-1 flex flex-col items-center justify-center p-8">
-          <Logo width={64} height={64} className="animate-pulse mb-4" />
-          <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading email details...</p>
-        </Card>
-      ) : messageError ? (
-        <Card className="flex-1 flex items-center justify-center">
-          <CardContent className="text-center space-y-3 pt-6">
-            <p className="text-red-500 font-medium">Unable to load email.</p>
-            <p className="text-sm text-muted-foreground">{messageError}</p>
-            <Button variant="outline" size="sm" onClick={() => selectedMessageId && fetchMessage(selectedMessageId)} className="gap-2">
-              <RefreshCw className="size-3.5" />
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      ) : selectedMessage ? (
-        <ThreadViewer
-          subject={selectedMessage.subject}
-          sender={selectedMessage.from}
-          body={selectedMessage.body}
-          messageId={selectedMessage.id}
-          onSnooze={handleSnooze}
+      {/* Left Panel - Email List: hidden on mobile when a thread is open */}
+      <div className={`
+        w-full md:w-auto md:block
+        ${selectedMessage || messageLoading || messageError ? "hidden md:block" : "block"}
+      `}>
+        <EmailList
+          emails={emails}
+          selectedEmailId={selectedMessageId ?? undefined}
+          onSelect={setSelectedMessageId}
+          loading={listLoading}
+          error={listError}
+          snoozeUpdated={snoozeUpdated}
+          unreadUpdated={unreadUpdated}
+          onUnreadCountChange={handleUnreadCountChange}
+          onRetry={fetchMessages}
         />
-      ) : (
-        <ThreadViewer />
-      )}
+      </div>
+
+      {/* Right Panel - Thread Viewer: full-screen on mobile when open */}
+      <div className={`
+        flex-1 flex flex-col min-w-0
+        ${selectedMessage || messageLoading || messageError ? "flex" : "hidden md:flex"}
+      `}>
+        {/* Mobile back button */}
+        <div className="md:hidden mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2 text-muted-foreground"
+            onClick={() => {
+              setSelectedMessageId(null)
+              setSelectedMessage(null)
+            }}
+          >
+            ← Back to Inbox
+          </Button>
+        </div>
+
+        {messageLoading ? (
+          <Card className="flex-1 flex flex-col items-center justify-center p-8">
+            <Logo width={64} height={64} className="animate-pulse mb-4" />
+            <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading email details...</p>
+          </Card>
+        ) : messageError ? (
+          <Card className="flex-1 flex items-center justify-center">
+            <CardContent className="text-center space-y-3 pt-6">
+              <p className="text-red-500 font-medium">Unable to load email.</p>
+              <p className="text-sm text-muted-foreground">{messageError}</p>
+              <Button variant="outline" size="sm" onClick={() => selectedMessageId && fetchMessage(selectedMessageId)} className="gap-2">
+                <RefreshCw className="size-3.5" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        ) : selectedMessage ? (
+          <ThreadViewer
+            subject={selectedMessage.subject}
+            sender={selectedMessage.from}
+            body={selectedMessage.body}
+            messageId={selectedMessage.id}
+            onSnooze={handleSnooze}
+          />
+        ) : (
+          <ThreadViewer />
+        )}
+      </div>
     </div>
   )
 }

@@ -81,10 +81,14 @@ export default function DashboardClient() {
       if (!messagesRes.ok) throw new Error("Failed to fetch messages")
       const messagesResult = await messagesRes.json()
       if (!messagesResult.success) throw new Error(messagesResult.error || "Failed to fetch messages")
-      
-      setEmails(messagesResult.data)
+
+      // Deduplicate by id — Gmail API can return the same message multiple times
+      const deduped = Array.from(
+        new Map((messagesResult.data as InboxMessage[]).map((e) => [e.id, e])).values()
+      )
+      setEmails(deduped)
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("dashboard-emails-v1", JSON.stringify(messagesResult.data))
+        sessionStorage.setItem("dashboard-emails-v2", JSON.stringify(deduped))
       }
 
       if (eventsRes.ok) {
@@ -92,12 +96,12 @@ export default function DashboardClient() {
         if (eventsResult.success) {
           setEvents(eventsResult.data)
           if (typeof window !== "undefined") {
-            sessionStorage.setItem("dashboard-events-v1", JSON.stringify(eventsResult.data))
+            sessionStorage.setItem("dashboard-events-v2", JSON.stringify(eventsResult.data))
           }
         }
       }
     } catch (err) {
-      const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("dashboard-emails-v1")
+      const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("dashboard-emails-v2")
       if (!hasCache) {
         setError(err instanceof Error ? err.message : "An error occurred")
       } else {
@@ -110,11 +114,14 @@ export default function DashboardClient() {
 
   useEffect(() => {
     // Load from sessionStorage instantly on client mount to bypass initial page loader
-    const cachedEmails = sessionStorage.getItem("dashboard-emails-v1")
-    const cachedEvents = sessionStorage.getItem("dashboard-events-v1")
+    const cachedEmails = sessionStorage.getItem("dashboard-emails-v2")
+    const cachedEvents = sessionStorage.getItem("dashboard-events-v2")
     if (cachedEmails) {
       try {
-        setEmails(JSON.parse(cachedEmails))
+        const parsed: InboxMessage[] = JSON.parse(cachedEmails)
+        // Deduplicate in case a previous fetch stored duplicates
+        const deduped = Array.from(new Map(parsed.map((e) => [e.id, e])).values())
+        setEmails(deduped)
         setLoading(false)
       } catch (e) {
         // ignore parse error
@@ -145,7 +152,9 @@ export default function DashboardClient() {
   }, [])
 
   const emailsWithPriority = useMemo(() => {
-    return emails.map((email) => {
+    // Deduplicate at the pipeline entry point — catches stale cache + API dupes
+    const unique = Array.from(new Map(emails.map((e) => [e.id, e])).values())
+    return unique.map((email) => {
       const isHighPriority = HIGH_PRIORITY_SENDERS.some((sender) =>
         email.from.toLowerCase().includes(sender.toLowerCase())
       )
