@@ -54,13 +54,15 @@ export function ThreadViewer({ subject, sender, body, messageId, onSnooze }: Thr
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch("/api/ai/summarize", {
+        const response = await fetch("/api/ai/assistant", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ subject, body }),
-        })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            action: "SUMMARIZE_EMAIL",
+            subject: subject, 
+            body: body 
+          }),
+        });
 
         const data = await response.json()
         

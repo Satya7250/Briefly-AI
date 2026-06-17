@@ -118,29 +118,9 @@ export default function BriefingClient() {
     fetchProfile()
   }, [])
 
-  // Fetch cached briefing instantly on mount if available
+  // Removed cached briefing fetching as caching is handled by Corsair local DB
   useEffect(() => {
-    const loadCachedBriefing = async () => {
-      try {
-        const response = await fetch("/api/ai/briefing/cached")
-        if (response.ok) {
-          const data = await response.json()
-          if (data.briefing) {
-            setMessages([
-              {
-                id: "cached-briefing",
-                role: "assistant",
-                content: data.briefing,
-                createdAt: new Date().toISOString(),
-              }
-            ])
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load cached briefing on mount:", err)
-      }
-    }
-    loadCachedBriefing()
+    // We will wait for user interaction to fetch briefing from the unified assistant
   }, [])
 
   // Determine user local hour greeting
@@ -193,14 +173,14 @@ export default function BriefingClient() {
     setActiveStreamingId(assistantMessageId)
 
     try {
-      const payloadMessages = messages.map(m => ({ role: m.role, content: m.content }))
+      const updatedMessages = messages.map(m => ({ role: m.role, content: m.content }))
         .concat({ role: "user", content: text })
 
-      const response = await fetch("/api/ai/briefing", {
+      const response = await fetch("/api/ai/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: payloadMessages })
-      })
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
 
       if (!response.body) {
         throw new Error("No response body")

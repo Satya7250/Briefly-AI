@@ -1,4 +1,5 @@
 import { corsair } from "@/corsair/client";
+import { GmailRepository } from "./gmail.repository";
 
 export interface InboxMessage {
   id: string;
@@ -125,278 +126,70 @@ function extractBody(payload?: GmailPayload): string {
   return "";
 }
 
-type CacheEntry<T> = {
-  data: T;
-  expiresAt: number;
-};
-
-// Global cache variables so they survive Hot Module Replacement (HMR) / Fast Refresh in development
-const globalForCache = globalThis as unknown as {
-  inboxCache?: Map<string, CacheEntry<InboxMessage[]>>;
-  unreadCache?: Map<string, CacheEntry<InboxMessage[]>>;
-  messageCache?: Map<string, CacheEntry<FullGmailMessage>>;
-  pendingRequests?: Map<string, Promise<any>>;
-};
-
-const inboxCache: Map<string, CacheEntry<InboxMessage[]>> = globalForCache.inboxCache ??= new Map<string, CacheEntry<InboxMessage[]>>();
-const unreadCache: Map<string, CacheEntry<InboxMessage[]>> = globalForCache.unreadCache ??= new Map<string, CacheEntry<InboxMessage[]>>();
-const messageCache: Map<string, CacheEntry<FullGmailMessage>> = globalForCache.messageCache ??= new Map<string, CacheEntry<FullGmailMessage>>();
-const pendingRequests: Map<string, Promise<any>> = globalForCache.pendingRequests ??= new Map<string, Promise<any>>();
-
-// Cache TTL choices:
-// - Inbox/Unread lists: 15 seconds to ensure fast updates but minimize redundant Gmail list calls.
-// - Message details: 5 minutes since once fetched, email contents do not change.
-const INBOX_TTL = 15 * 1000;
-const UNREAD_TTL = 15 * 1000;
-const MESSAGE_TTL = 5 * 60 * 1000;
-
-// Reusable cache lookup helper
-function getCachedItem<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
-  const entry = cache.get(key);
-  if (entry && Date.now() < entry.expiresAt) {
-    return entry.data;
-  }
-  if (entry) {
-    cache.delete(key); // Evict expired entry
-  }
-  return null;
-}
-
-// Reusable cache insertion helper (prunes expired entries to avoid memory growth)
-function setCachedItem<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T, ttlMs: number): void {
-  const now = Date.now();
-  // Simple periodic pruning during inserts
-  for (const [k, v] of cache.entries()) {
-    if (now >= v.expiresAt) {
-      cache.delete(k);
-    }
-  }
-  cache.set(key, {
-    data,
-    expiresAt: now + ttlMs,
-  });
-}
-
-// Request deduplication helper to collapse concurrent calls into a single execution
-async function deduplicateRequest<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
-  if (pendingRequests.has(key)) {
-    return pendingRequests.get(key) as Promise<T>;
-  }
-
-  const promise = fetchFn().finally(() => {
-    pendingRequests.delete(key);
-  });
-
-  pendingRequests.set(key, promise);
-  return promise;
-}
-
 export async function getInboxMessages(tenantId: string): Promise<InboxMessage[]> {
-  const cacheKey = `inbox:v1:${tenantId}`;
-  
-  // 1. Check cache first
-  const cached = getCachedItem(inboxCache, cacheKey);
-  if (cached) {
-    return cached;
+  try {
+    return await GmailRepository.getRecentMessages(tenantId, 20);
+  } catch (error) {
+    console.error("GMAIL SERVICE ERROR:", error);
+    return [];
   }
-
-  // 2. Prevent concurrent identical fetches via request deduplication
-  return deduplicateRequest(cacheKey, async () => {
-    try {
-      const tenant = corsair.withTenant(tenantId);
-      const result = await tenant.gmail.api.messages.list({ maxResults: 20 });
-      
-      if (!result.messages) return [];
-      
-      // Fetch details of listed messages, utilizing the detail cache for each message
-      const messages = await Promise.all(
-        result.messages
-          .filter((msg): msg is { id: string; [key: string]: unknown } => msg.id !== undefined)
-          .map(async (msg) => {
-            const msgCacheKey = `message:v1:${tenantId}:${msg.id}`;
-            const cachedMsg = getCachedItem(messageCache, msgCacheKey);
-            if (cachedMsg) {
-              return {
-                id: cachedMsg.id,
-                threadId: cachedMsg.threadId,
-                subject: cachedMsg.subject,
-                from: cachedMsg.sender,
-                snippet: cachedMsg.snippet,
-                createdAt: cachedMsg.createdAt,
-              };
-            }
-
-            const message = await tenant.gmail.api.messages.get({ id: msg.id, format: "metadata" });
-            
-            const subject = message.payload?.headers?.find((h: GmailHeader) => h.name === "Subject")?.value || "No Subject";
-            const from = message.payload?.headers?.find((h: GmailHeader) => h.name === "From")?.value || "Unknown Sender";
-            const createdAt = new Date(parseInt(message.internalDate as string));
-            
-            const formatted = {
-              id: message.id as string,
-              threadId: message.threadId as string,
-              subject,
-              from,
-              snippet: message.snippet as string,
-              createdAt,
-            };
-
-            // Pre-warm the details cache (without full body)
-            setCachedItem(messageCache, msgCacheKey, {
-              id: formatted.id,
-              threadId: formatted.threadId,
-              subject: formatted.subject,
-              sender: formatted.from,
-              body: "",
-              snippet: formatted.snippet,
-              createdAt: formatted.createdAt,
-            }, MESSAGE_TTL);
-
-            return formatted;
-          })
-      );
-      
-      const sorted = messages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      
-      // Store complete response in cache
-      setCachedItem(inboxCache, cacheKey, sorted, INBOX_TTL);
-      return sorted;
-    } catch (error) {
-      if (
-        error instanceof Error && 
-        error.message.includes("Account not found")
-      ) {
-        return [];
-      }
-      console.error("GMAIL SERVICE ERROR:", error);
-      throw error;
-    }
-  });
 }
 
 export async function getMessageById(tenantId: string, messageId: string): Promise<FullGmailMessage> {
-  const cacheKey = `message:v1:${tenantId}:${messageId}`;
+  const message = await GmailRepository.getMessage(tenantId, messageId);
   
-  // Return cached result immediately if it exists and has the message body fetched
-  const cached = getCachedItem(messageCache, cacheKey);
-  if (cached && cached.body) {
-    return cached;
+  if (!message) {
+    throw new Error("Message not found in local database.");
   }
 
-  // Deduplicate concurrent get requests for the same message ID
-  return deduplicateRequest(cacheKey, async () => {
-    const tenant = corsair.withTenant(tenantId);
-    const message = await tenant.gmail.api.messages.get({ id: messageId, format: "full" });
-    
-    const subject = message.payload?.headers?.find(
-      (h: GmailHeader) => h.name === "Subject"
-    )?.value ?? "No Subject";
-    
-    const sender = message.payload?.headers?.find(
-      (h: GmailHeader) => h.name === "From"
-    )?.value ?? "Unknown Sender";
-    
-    const body = extractBody(message.payload as GmailPayload);
+  const msg = message as any;
+  const subject = msg.payload?.headers?.find(
+    (h: GmailHeader) => h.name === "Subject"
+  )?.value ?? "No Subject";
+  
+  const sender = msg.payload?.headers?.find(
+    (h: GmailHeader) => h.name === "From"
+  )?.value ?? "Unknown Sender";
+  
+  const body = extractBody(msg.payload as GmailPayload);
 
-    const fullMessage: FullGmailMessage = {
-      id: message.id as string,
-      threadId: message.threadId as string,
-      subject,
-      sender,
-      body,
-      snippet: message.snippet as string,
-      createdAt: new Date(parseInt(message.internalDate as string)),
-    };
+  let createdAt: Date;
+  if (msg.internalDate) {
+    const parsed = parseInt(msg.internalDate);
+    createdAt = !isNaN(parsed) ? new Date(parsed) : new Date(msg.internalDate);
+  } else if (msg.createdAt) {
+    createdAt = new Date(msg.createdAt);
+  } else {
+    createdAt = new Date();
+  }
+  if (isNaN(createdAt.getTime())) {
+    createdAt = new Date();
+  }
 
-    setCachedItem(messageCache, cacheKey, fullMessage, MESSAGE_TTL);
-    return fullMessage;
-  });
+  return {
+    id: msg.id as string,
+    threadId: msg.threadId as string,
+    subject,
+    sender,
+    body,
+    snippet: msg.snippet as string,
+    createdAt,
+  };
 }
 
 export async function getUnreadEmails(tenantId: string): Promise<InboxMessage[]> {
-  const cacheKey = `unread:v1:${tenantId}`;
-  
-  const cached = getCachedItem(unreadCache, cacheKey);
-  if (cached) {
-    return cached;
+  try {
+    return await GmailRepository.getUnreadMessages(tenantId, 20);
+  } catch (error) {
+    console.error("GET UNREAD EMAILS ERROR:", error);
+    return [];
   }
-
-  return deduplicateRequest(cacheKey, async () => {
-    try {
-      const tenant = corsair.withTenant(tenantId);
-      const response = await tenant.gmail.api.messages.list({
-        maxResults: 20,
-        q: "is:unread",
-      });
-
-      if (!response.messages) return [];
-
-      const messages = await Promise.all(
-        response.messages
-          .filter((msg): msg is { id: string; [key: string]: unknown } => msg.id !== undefined)
-          .map(async (msg) => {
-            const msgCacheKey = `message:v1:${tenantId}:${msg.id}`;
-            const cachedMsg = getCachedItem(messageCache, msgCacheKey);
-            if (cachedMsg) {
-              return {
-                id: cachedMsg.id,
-                threadId: cachedMsg.threadId,
-                subject: cachedMsg.subject,
-                from: cachedMsg.sender,
-                snippet: cachedMsg.snippet,
-                createdAt: cachedMsg.createdAt,
-              };
-            }
-
-            const message = await tenant.gmail.api.messages.get({ id: msg.id, format: "metadata" });
-            
-            const subject = message.payload?.headers?.find((h: GmailHeader) => h.name === "Subject")?.value || "No Subject";
-            const from = message.payload?.headers?.find((h: GmailHeader) => h.name === "From")?.value || "Unknown Sender";
-            const createdAt = new Date(parseInt(message.internalDate as string));
-            
-            const formatted = {
-              id: message.id as string,
-              threadId: message.threadId as string,
-              subject,
-              from,
-              snippet: message.snippet as string,
-              createdAt,
-            };
-
-            setCachedItem(messageCache, msgCacheKey, {
-              id: formatted.id,
-              threadId: formatted.threadId,
-              subject: formatted.subject,
-              sender: formatted.from,
-              body: "",
-              snippet: formatted.snippet,
-              createdAt: formatted.createdAt,
-            }, MESSAGE_TTL);
-
-            return formatted;
-          })
-      );
-
-      const sorted = messages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      setCachedItem(unreadCache, cacheKey, sorted, UNREAD_TTL);
-      return sorted;
-    } catch (error) {
-      if (
-        error instanceof Error && 
-        error.message.includes("Account not found")
-      ) {
-        return [];
-      }
-      console.error("GET UNREAD EMAILS ERROR:", error);
-      throw error;
-    }
-  });
 }
 
 export async function getUserProfile(tenantId: string): Promise<{ email: string; displayName?: string } | null> {
   try {
     const tenant = corsair.withTenant(tenantId);
-    // Manually call Gmail's users.getProfile API
+    // Manually call Gmail's users.getProfile API since it's an API action
     const gmailKeys = tenant.gmail.keys;
     const accessToken = await gmailKeys.get_access_token();
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
@@ -418,14 +211,7 @@ export async function getUserProfile(tenantId: string): Promise<{ email: string;
     }
     return null;
   } catch (error) {
-    if (
-      error instanceof Error && 
-      (error.message.includes("Account not found") || error.message.includes("Cannot read properties"))
-    ) {
-      return null;
-    }
     console.error("GET USER PROFILE ERROR:", error);
     return null;
   }
 }
-

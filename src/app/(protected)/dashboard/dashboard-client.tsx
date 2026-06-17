@@ -127,10 +127,8 @@ export default function DashboardClient() {
       }
     }
     fetchMessages()
-    // Prewarm briefing cache in the background
-    fetch("/api/ai/briefing/prewarm", { method: "POST" }).catch((err) =>
-      console.error("Failed to prewarm briefing cache:", err)
-    )
+    // Removed prewarm call as caching has been removed and Corsair local DB provides fast reads
+    console.log("Dashboard loaded");
   }, [])
 
   const emailsWithPriority = useMemo(() => {
