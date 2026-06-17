@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { isSnoozed } from "@/lib/snooze"
 import { markEmailAsRead, getUnreadState } from "@/lib/unread"
-
-import { SquarePen } from "lucide-react"
+import { SquarePen, RefreshCw } from "lucide-react"
 
 export interface InboxMessage {
   id: string
@@ -36,9 +35,10 @@ interface EmailListProps {
   snoozeUpdated?: number
   unreadUpdated?: number
   onUnreadCountChange?: (count: number) => void
+  onRetry?: () => void
 }
 
-export function EmailList({ emails, selectedEmailId, onSelect, loading, error, snoozeUpdated, unreadUpdated, onUnreadCountChange }: EmailListProps) {
+export function EmailList({ emails, selectedEmailId, onSelect, loading, error, snoozeUpdated, unreadUpdated, onUnreadCountChange, onRetry }: EmailListProps) {
   const [filter, setFilter] = useState<"all" | "unread" | "priority">("all")
   const [now, setNow] = useState(Date.now())
   const [unreadState, setUnreadState] = useState<Record<string, boolean>>({})
@@ -157,9 +157,15 @@ export function EmailList({ emails, selectedEmailId, onSelect, loading, error, s
           </div>
         )}
         {error && (
-          <div className="p-4 text-center space-y-2">
+          <div className="p-4 text-center space-y-3">
             <p className="text-red-500 font-medium">Unable to load emails.</p>
             <p className="text-sm text-muted-foreground">Please try again.</p>
+            {onRetry && (
+              <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
+                <RefreshCw className="size-3.5" />
+                Retry
+              </Button>
+            )}
           </div>
         )}
         {!loading && !error && filteredAndSortedEmails.length === 0 && (

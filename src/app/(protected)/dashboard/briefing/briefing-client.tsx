@@ -4,11 +4,12 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { AssistantMessage } from "@/types/assistant"
 import { BriefingRenderer, parseBriefingContent } from "@/components/briefing-renderer"
 import { Logo } from "@/components/common/logo"
+import { useIntegrationStatus } from "@/hooks/use-integration-status"
 import { 
   SendIcon, 
   SparklesIcon, 
@@ -16,8 +17,9 @@ import {
   AlertCircleIcon, 
   CheckSquareIcon, 
   CalendarIcon, 
-  ArrowRightIcon 
+  ArrowRightIcon
 } from "lucide-react"
+
 
 const aiCards = [
   {
@@ -43,9 +45,10 @@ const aiCards = [
 ]
 
 const suggestionPrompts = [
-  { text: "Summarize unread emails", icon: <MailIcon className="size-4 text-[#8B5CF6]" /> },
-  { text: "What's on my calendar?", icon: <CalendarIcon className="size-4 text-blue-500" /> },
-  { text: "What needs my attention?", icon: <AlertCircleIcon className="size-4 text-red-500" /> }
+  { text: "Summarize my unread emails", icon: <MailIcon className="size-4 text-[#8B5CF6]" /> },
+  { text: "Prepare me for my next meeting", icon: <CalendarIcon className="size-4 text-blue-500" /> },
+  { text: "Schedule a meeting tomorrow", icon: <CalendarIcon className="size-4 text-green-500" /> },
+  { text: "Draft an email for me", icon: <MailIcon className="size-4 text-amber-500" /> },
 ]
 
 const thinkingStates = [
@@ -93,6 +96,7 @@ export default function BriefingClient() {
   const [activeStreamingId, setActiveStreamingId] = useState<string | null>(null)
   const [userName, setUserName] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { status: integrationStatus } = useIntegrationStatus()
 
   // Auto-scroll to bottom when messages or content streams
   useEffect(() => {
@@ -248,6 +252,22 @@ export default function BriefingClient() {
         </p>
       </div>
 
+      {/* Integration status banner */}
+      {integrationStatus && (!integrationStatus.gmailConnected || !integrationStatus.calendarConnected) && (
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/8 border border-amber-500/20 text-sm text-amber-600 dark:text-amber-400 select-none animate-in fade-in duration-300 shrink-0">
+          <AlertCircleIcon className="size-4 shrink-0" />
+          <span>
+            {!integrationStatus.gmailConnected && !integrationStatus.calendarConnected
+              ? "Connect Gmail and Google Calendar in "
+              : !integrationStatus.gmailConnected
+              ? "Connect Gmail in "
+              : "Connect Google Calendar in "}
+            <a href="/dashboard/settings" className="font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity">Settings</a>
+            {" "}to unlock full AI capabilities.
+          </span>
+        </div>
+      )}
+
       {messages.length === 0 ? (
         <>
           {/* AI Feature Cards Preview */}
@@ -311,7 +331,7 @@ export default function BriefingClient() {
                   </div>
                   
                   {/* Premium Suggestion Prompts */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl mt-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mt-3">
                     {suggestionPrompts.map((prompt, idx) => (
                       <button
                         key={prompt.text}

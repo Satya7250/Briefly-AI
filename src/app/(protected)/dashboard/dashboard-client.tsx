@@ -13,6 +13,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import { useIntegrationStatus } from "@/hooks/use-integration-status"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/common/logo"
+import { RefreshCw } from "lucide-react"
 
 const HIGH_PRIORITY_SENDERS = [
   "github",
@@ -203,9 +204,13 @@ export default function DashboardClient() {
     return (
       <div className="h-full flex items-center justify-center p-6">
         <Card>
-          <CardContent className="text-center space-y-2 pt-6">
+          <CardContent className="text-center space-y-3 pt-6 pb-6">
             <p className="text-red-500 font-medium">Unable to load dashboard.</p>
-            <p className="text-sm text-muted-foreground">Please try again.</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button variant="outline" size="sm" onClick={fetchMessages} className="gap-2">
+              <RefreshCw className="size-3.5" />
+              Try Again
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -215,6 +220,25 @@ export default function DashboardClient() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {/* Gmail Banner */}
+      {!integrationStatus?.gmailConnected && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 className="text-lg font-semibold mb-1">Gmail not connected</h3>
+                <p className="text-muted-foreground mb-0">
+                  Connect Gmail to read emails, get AI summaries, and use all inbox features
+                </p>
+              </div>
+              <Button onClick={() => window.location.href = "/api/corsair/gmail/connect"}>
+                Connect Gmail
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calendar Banner */}
       {!integrationStatus?.calendarConnected && (

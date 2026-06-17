@@ -1,6 +1,7 @@
 import { getInboxMessages } from "@/features/mail/server/gmail-service";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantId } from "@/lib/auth";
+import { getIntegrationStatus } from "@/lib/integrations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +9,16 @@ export async function GET(request: NextRequest) {
     
     if (!tenantId) {
       return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 })
+    }
+
+    // Check integration connection status
+    const integrationStatus = await getIntegrationStatus(tenantId);
+    if (!integrationStatus.gmailConnected) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        integrationRequired: true
+      });
     }
     
     const messages = await getInboxMessages(tenantId);
@@ -23,8 +34,9 @@ export async function GET(request: NextRequest) {
     }));
     
     return NextResponse.json({ success: true, data: formattedMessages });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching messages:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch messages" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || "Failed to fetch messages" }, { status: 500 });
   }
 }
+

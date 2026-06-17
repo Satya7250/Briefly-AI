@@ -1,6 +1,14 @@
 import { getMessageById } from "@/features/mail/server/gmail-service";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantId } from "@/lib/auth";
+import { getIntegrationStatus } from "@/lib/integrations";
+
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+  ]);
+}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -8,14 +16,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const tenantId = await getTenantId()
     
     if (!tenantId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 })
+    }
+
+    // Check integration connection status
+    const integrationStatus = await getIntegrationStatus(tenantId);
+    if (!integrationStatus.gmailConnected) {
+      return NextResponse.json(
+        { success: false, error: "Gmail integration is not connected. Please connect Gmail in Settings." },
+        { status: 400 }
+      );
     }
 
     if (!id) {
-      return NextResponse.json({ error: "Missing message id" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Missing message id" }, { status: 400 });
     }
     
-    const message = await getMessageById(tenantId, id);
+    const message = await withTimeout(
+      getMessageById(tenantId, id),
+      15000,
+      "Gmail API request timed out"
+    );
     
     return NextResponse.json({
       success: true,
@@ -29,8 +50,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         createdAt: message.createdAt.toISOString(),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching message:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch message" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || "Failed to fetch message" }, { status: 500 });
   }
 }

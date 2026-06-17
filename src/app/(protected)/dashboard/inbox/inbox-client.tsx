@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { EmailList, InboxMessage as ListInboxMessage } from "@/components/inbox/email-list"
 import { ThreadViewer } from "@/components/inbox/thread-viewer"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { useUnreadCount } from "@/components/unread-context"
+import { useIntegrationStatus } from "@/hooks/use-integration-status"
 import { Logo } from "@/components/common/logo"
+import { Mail, RefreshCw } from "lucide-react"
 
 interface FullMessage {
   id: string
@@ -20,8 +22,6 @@ interface FullMessage {
 }
 
 export default function InboxClient() {
-  // To prevent Next.js SSR hydration mismatches, start with default empty states on server and initial client render.
-  // We will load the cached data from sessionStorage synchronously in useEffect on mount.
   const [emails, setEmails] = useState<ListInboxMessage[]>([])
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
   const [selectedMessage, setSelectedMessage] = useState<FullMessage | null>(null)
@@ -32,6 +32,7 @@ export default function InboxClient() {
   const [snoozeUpdated, setSnoozeUpdated] = useState(0)
   const [unreadUpdated, setUnreadUpdated] = useState(0)
   const { setCount: setUnreadCount } = useUnreadCount()
+  const { status: integrationStatus, loading: integrationLoading } = useIntegrationStatus()
 
   // Ref to protect against React state race conditions when quickly switching selected threads
   const latestSelectedIdRef = useRef<string | null>(null)
@@ -42,7 +43,6 @@ export default function InboxClient() {
 
   const fetchMessages = async () => {
     try {
-      // Determine if cache exists to avoid showing loading skeletons during background refresh
       const hasCache = typeof window !== "undefined" && !!sessionStorage.getItem("inbox-cache-v1")
       if (!hasCache) {
         setListLoading(true)
@@ -75,7 +75,6 @@ export default function InboxClient() {
     const threadCacheKey = `thread-cache-v1:${id}`
     let hasCache = false
 
-    // Try to load and show thread from cache instantly
     if (typeof window !== "undefined") {
       const cached = sessionStorage.getItem(threadCacheKey)
       if (cached) {
@@ -92,7 +91,6 @@ export default function InboxClient() {
     }
 
     try {
-      // Avoid flash of loader if we already rendered the thread from cache
       if (!hasCache && latestSelectedIdRef.current === id) {
         setMessageLoading(true)
       }
@@ -106,7 +104,6 @@ export default function InboxClient() {
       const result = await res.json()
       if (!result.success) throw new Error(result.error || "Failed to fetch message")
 
-      // Only update state if user hasn't switched away from this message
       if (latestSelectedIdRef.current === id) {
         setSelectedMessage(result.data)
       }
@@ -139,7 +136,6 @@ export default function InboxClient() {
   }, [setUnreadCount])
 
   useEffect(() => {
-    // Load from sessionStorage instantly on client mount to bypass initial loading skeletons
     const cached = sessionStorage.getItem("inbox-cache-v1")
     if (cached) {
       try {
@@ -153,9 +149,7 @@ export default function InboxClient() {
   }, [])
 
   useEffect(() => {
-    const handleRefresh = () => {
-      fetchMessages()
-    }
+    const handleRefresh = () => { fetchMessages() }
     window.addEventListener("refresh-inbox", handleRefresh)
     return () => window.removeEventListener("refresh-inbox", handleRefresh)
   }, [])
@@ -165,16 +159,12 @@ export default function InboxClient() {
       e.preventDefault()
       const currentIndex = selectedMessageId ? emails.findIndex(email => email.id === selectedMessageId) : -1
       const nextIndex = Math.min(currentIndex + 1, emails.length - 1)
-      if (nextIndex >= 0 && emails[nextIndex]) {
-        setSelectedMessageId(emails[nextIndex].id)
-      }
+      if (nextIndex >= 0 && emails[nextIndex]) setSelectedMessageId(emails[nextIndex].id)
     } else if (e.key === "k") {
       e.preventDefault()
       const currentIndex = selectedMessageId ? emails.findIndex(email => email.id === selectedMessageId) : emails.length
       const prevIndex = Math.max(currentIndex - 1, 0)
-      if (prevIndex >= 0 && emails[prevIndex]) {
-        setSelectedMessageId(emails[prevIndex].id)
-      }
+      if (prevIndex >= 0 && emails[prevIndex]) setSelectedMessageId(emails[prevIndex].id)
     } else if (e.key === "Enter" && selectedMessageId) {
       e.preventDefault()
       fetchMessage(selectedMessageId)
@@ -198,6 +188,34 @@ export default function InboxClient() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [handleKeyDown])
 
+  // Show Gmail connection prompt if not connected
+  if (!integrationLoading && integrationStatus && !integrationStatus.gmailConnected) {
+    return (
+      <div className="flex h-full gap-4">
+        <Toaster />
+        <Card className="w-full flex flex-col items-center justify-center border-dashed min-h-[400px]">
+          <CardContent className="flex flex-col items-center text-center space-y-4 pt-8 pb-8 max-w-sm mx-auto">
+            <div className="relative">
+              <div className="absolute -inset-4 rounded-full bg-primary/5 blur-md" />
+              <div className="relative w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <Mail className="size-7 text-primary/60" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-semibold tracking-tight">Connect Gmail to get started</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Connect your Gmail account to read emails, view threads, and use AI features.
+              </p>
+            </div>
+            <Button onClick={() => window.location.href = "/api/corsair/gmail/connect"}>
+              Connect Gmail
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full gap-4">
       <Toaster />
@@ -211,6 +229,7 @@ export default function InboxClient() {
         snoozeUpdated={snoozeUpdated}
         unreadUpdated={unreadUpdated}
         onUnreadCountChange={handleUnreadCountChange}
+        onRetry={fetchMessages}
       />
 
       {/* Right Panel - Thread Viewer */}
@@ -221,9 +240,13 @@ export default function InboxClient() {
         </Card>
       ) : messageError ? (
         <Card className="flex-1 flex items-center justify-center">
-          <CardContent className="text-center space-y-2">
+          <CardContent className="text-center space-y-3 pt-6">
             <p className="text-red-500 font-medium">Unable to load email.</p>
-            <p className="text-sm text-muted-foreground">Please try again.</p>
+            <p className="text-sm text-muted-foreground">{messageError}</p>
+            <Button variant="outline" size="sm" onClick={() => selectedMessageId && fetchMessage(selectedMessageId)} className="gap-2">
+              <RefreshCw className="size-3.5" />
+              Try Again
+            </Button>
           </CardContent>
         </Card>
       ) : selectedMessage ? (

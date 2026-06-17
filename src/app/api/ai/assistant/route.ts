@@ -205,18 +205,42 @@ User: ${message}`;
 export async function POST(request: NextRequest) {
   try {
     const tenantId = await getTenantId();
-    if (!tenantId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
+    }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON request payload" },
+        { status: 400 }
+      );
+    }
+
     const openai = getOpenAIClient();
+    const integrationStatus = await getIntegrationStatus(tenantId);
 
     // 1. Check for specific direct actions (e.g., from UI buttons)
     if (body.action === "SUMMARIZE_EMAIL") {
+      if (!integrationStatus.gmailConnected) {
+        return NextResponse.json(
+          { success: false, error: "Gmail is not connected. Please connect Gmail in Settings." },
+          { status: 400 }
+        );
+      }
       const result = await handleSummarizeEmail(body.subject, body.body, openai);
       return NextResponse.json(result);
     }
     
     if (body.action === "INBOX_SUMMARY") {
+      if (!integrationStatus.gmailConnected) {
+        return NextResponse.json(
+          { success: false, error: "Gmail is not connected. Please connect Gmail in Settings." },
+          { status: 400 }
+        );
+      }
       const result = await handleInboxSummary(tenantId, openai);
       return NextResponse.json(result);
     }
@@ -225,7 +249,6 @@ export async function POST(request: NextRequest) {
     const messages = body.messages || [];
     const lastMessage = messages[messages.length - 1]?.content || "";
 
-    const integrationStatus = await getIntegrationStatus(tenantId);
     const intent = await detectIntent(lastMessage, openai);
 
     const gmailPromise = integrationStatus.gmailConnected ? getInboxMessages(tenantId) : Promise.resolve([]);
@@ -254,6 +277,32 @@ export async function POST(request: NextRequest) {
         const send = (text: string) => controller.enqueue(encoder.encode(text));
 
         try {
+          // Check integration connection status relative to the intent
+          if (intent === "CALENDAR_SUMMARY" || intent === "CREATE_EVENT" || intent === "UPDATE_EVENT") {
+            if (!integrationStatus.calendarConnected) {
+              send("It looks like your Google Calendar is not connected. Please connect Google Calendar in [Settings](/dashboard/settings) to view, schedule, or update events.");
+              controller.close();
+              return;
+            }
+          }
+          if (intent === "EMAIL_SUMMARY" || intent === "UNREAD_EMAILS" || intent === "ACTION_ITEMS" || intent === "SEND_EMAIL" || intent === "EMAIL_REPLY") {
+            if (!integrationStatus.gmailConnected) {
+              send("It looks like your Gmail account is not connected. Please connect Gmail in [Settings](/dashboard/settings) to read, summarize, or draft emails.");
+              controller.close();
+              return;
+            }
+          }
+          if (intent === "PREPARE_MEETINGS") {
+            const missing = [];
+            if (!integrationStatus.calendarConnected) missing.push("Google Calendar");
+            if (!integrationStatus.gmailConnected) missing.push("Gmail");
+            if (missing.length > 0) {
+              send(`I need both Gmail and Google Calendar connected to prepare meeting briefing notes. Please connect your ${missing.join(" and ")} integration${missing.length > 1 ? "s" : ""} in [Settings](/dashboard/settings).`);
+              controller.close();
+              return;
+            }
+          }
+
           if (intent === "CALENDAR_SUMMARY") {
             const scheduleText = `Today's Schedule\n\n${processedEvents.length > 0 
               ? processedEvents.map(e => `${e.start} ${e.summary}`).join("\n") 

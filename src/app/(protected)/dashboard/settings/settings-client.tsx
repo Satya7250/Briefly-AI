@@ -7,10 +7,30 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useIntegrationStatus } from "@/hooks/use-integration-status";
 import { useState } from "react";
 import { Logo } from "@/components/common/logo";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+
+// Clear only safe client-side data caches — does NOT touch auth or session data
+function clearIntegrationCaches(type: "gmail" | "googlecalendar" | "all") {
+  if (typeof window === "undefined") return;
+  if (type === "gmail" || type === "all") {
+    sessionStorage.removeItem("dashboard-emails-v1");
+    sessionStorage.removeItem("inbox-cache-v1");
+    // Also clear per-thread caches
+    const keys = Object.keys(sessionStorage);
+    keys.forEach(k => { if (k.startsWith("thread-cache-v1:")) sessionStorage.removeItem(k); });
+  }
+  if (type === "googlecalendar" || type === "all") {
+    sessionStorage.removeItem("dashboard-events-v1");
+    sessionStorage.removeItem("calendar-events-v1");
+  }
+}
 
 export default function SettingsClient() {
   const { status, loading, refreshStatus } = useIntegrationStatus();
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [gmailDialogOpen, setGmailDialogOpen] = useState(false);
+  const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
 
   const handleDisconnect = async (integration: "gmail" | "googlecalendar") => {
     try {
@@ -18,11 +38,23 @@ export default function SettingsClient() {
       const res = await fetch(`/api/integrations/disconnect/${integration}`, {
         method: "POST",
       });
-      if (res.ok) {
-        await refreshStatus();
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to disconnect");
       }
-    } catch (err) {
+
+      // Clear related cache data
+      clearIntegrationCaches(integration);
+
+      // Close dialog
+      if (integration === "gmail") setGmailDialogOpen(false);
+      if (integration === "googlecalendar") setCalendarDialogOpen(false);
+
+      await refreshStatus();
+      toast.success(`${integration === "gmail" ? "Gmail" : "Google Calendar"} disconnected successfully.`);
+    } catch (err: any) {
       console.error("Error disconnecting integration:", err);
+      toast.error(err.message || "Failed to disconnect integration.");
     } finally {
       setDisconnecting(null);
     }
@@ -39,6 +71,7 @@ export default function SettingsClient() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Toaster />
       <h1 className="text-2xl font-bold">Settings</h1>
 
       <div className="space-y-4">
@@ -50,7 +83,7 @@ export default function SettingsClient() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Gmail</CardTitle>
-                <CardDescription>Connect your Gmail account to read emails</CardDescription>
+                <CardDescription>Connect your Gmail account to read and send emails</CardDescription>
               </div>
               <Badge variant={status?.gmailConnected ? "default" : "secondary"}>
                 {status?.gmailConnected ? "Connected" : "Not Connected"}
@@ -69,7 +102,7 @@ export default function SettingsClient() {
                   <Button variant="secondary" onClick={() => window.location.href = "/api/corsair/gmail/connect"}>
                     Reconnect
                   </Button>
-                  <Dialog>
+                  <Dialog open={gmailDialogOpen} onOpenChange={setGmailDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="destructive" disabled={disconnecting === "gmail"}>
                         {disconnecting === "gmail" ? "Disconnecting..." : "Disconnect"}
@@ -83,9 +116,13 @@ export default function SettingsClient() {
                         </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
-                        <Button variant="secondary">Cancel</Button>
-                        <Button variant="destructive" onClick={() => handleDisconnect("gmail")}>
-                          Disconnect
+                        <Button variant="secondary" onClick={() => setGmailDialogOpen(false)}>Cancel</Button>
+                        <Button
+                          variant="destructive"
+                          disabled={disconnecting === "gmail"}
+                          onClick={() => handleDisconnect("gmail")}
+                        >
+                          {disconnecting === "gmail" ? "Disconnecting..." : "Disconnect"}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -125,7 +162,7 @@ export default function SettingsClient() {
                   <Button variant="secondary" onClick={() => window.location.href = "/api/corsair/googlecalendar/connect"}>
                     Reconnect
                   </Button>
-                  <Dialog>
+                  <Dialog open={calendarDialogOpen} onOpenChange={setCalendarDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="destructive" disabled={disconnecting === "googlecalendar"}>
                         {disconnecting === "googlecalendar" ? "Disconnecting..." : "Disconnect"}
@@ -139,9 +176,13 @@ export default function SettingsClient() {
                         </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
-                        <Button variant="secondary">Cancel</Button>
-                        <Button variant="destructive" onClick={() => handleDisconnect("googlecalendar")}>
-                          Disconnect
+                        <Button variant="secondary" onClick={() => setCalendarDialogOpen(false)}>Cancel</Button>
+                        <Button
+                          variant="destructive"
+                          disabled={disconnecting === "googlecalendar"}
+                          onClick={() => handleDisconnect("googlecalendar")}
+                        >
+                          {disconnecting === "googlecalendar" ? "Disconnecting..." : "Disconnect"}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
