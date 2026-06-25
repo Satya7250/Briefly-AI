@@ -146,6 +146,7 @@ Return JSON only with this structure:
   const completion = await openai.chat.completions.create({
     model: "openai/gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
+    max_tokens: 1000
   });
 
   const content = completion.choices[0].message.content;
@@ -167,6 +168,7 @@ async function handleInboxSummary(tenantId: string, openai: OpenAI) {
   const completion = await openai.chat.completions.create({
     model: "openai/gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
+    max_tokens: 1000
   });
 
   return { summary: completion.choices[0].message.content || "Couldn't generate summary." };
@@ -191,6 +193,7 @@ User: ${message}`;
   const completion = await openai.chat.completions.create({
     model: "openai/gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
+    max_tokens: 10
   });
   
   const intent = completion.choices[0].message.content?.trim().toUpperCase() as Intent;
